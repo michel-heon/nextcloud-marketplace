@@ -1,0 +1,88 @@
+name: Validate
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - develop
+
+permissions:
+  contents: read
+
+env:
+  PACKER_DIR: packer/nextcloud
+
+jobs:
+  shellcheck:
+    name: ShellCheck
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install ShellCheck
+        run: sudo apt-get install -y shellcheck
+
+      - name: Run ShellCheck on provisioning scripts
+        run: |
+          find packer/nextcloud/scripts -name "*.sh" -print0 \
+            | xargs -0 shellcheck --severity=error --shell=bash
+
+      - name: Run ShellCheck on utility scripts
+        run: |
+          find scripts -name "*.sh" -print0 \
+            | xargs -0 shellcheck --severity=error --shell=bash
+
+  packer-validate:
+    name: Packer validate
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Packer
+        uses: hashicorp/setup-packer@main
+        with:
+          version: "latest"
+
+      - name: Packer init
+        working-directory: ${{ env.PACKER_DIR }}
+        run: packer init .
+
+      - name: Packer validate (syntax only — no credentials needed)
+        working-directory: ${{ env.PACKER_DIR }}
+        env:
+          PKR_VAR_subscription_id:       "00000000-0000-0000-0000-000000000000"
+          PKR_VAR_tenant_id:             "00000000-0000-0000-0000-000000000000"
+          PKR_VAR_client_id:             "00000000-0000-0000-0000-000000000000"
+          PKR_VAR_client_secret:         "placeholder"
+          PKR_VAR_build_resource_group:  "rg-placeholder"
+          PKR_VAR_gallery_resource_group: "rg-placeholder"
+          PKR_VAR_gallery_name:          "gallery-placeholder"
+          PKR_VAR_gallery_image_name:    "image-placeholder"
+          PKR_VAR_image_version:         "0.0.1"
+        run: packer validate .
+
+  terraform-validate:
+    name: Terraform validate
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "~1.5"
+
+      - name: Terraform init (backend=false)
+        working-directory: terraform
+        run: terraform init -backend=false
+
+      - name: Terraform validate
+        working-directory: terraform
+        run: terraform validate

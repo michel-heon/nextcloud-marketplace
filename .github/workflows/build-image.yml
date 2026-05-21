@@ -1,0 +1,72 @@
+name: Build Nextcloud VM Image
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+
+env:
+  PACKER_DIR: packer/nextcloud
+
+jobs:
+  build-image:
+    name: Packer build
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Packer
+        uses: hashicorp/setup-packer@main
+        with:
+          version: "latest"
+
+      - name: Extract image version from git tag
+        id: version
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          # Strip leading 'v' — e.g. v1.2.3 → 1.2.3
+          VERSION="${TAG#v}"
+          # Use only the numeric semver prefix (e.g. 1.2.3 from v1.2.3-description)
+          SEMVER="$(echo "${VERSION}" | grep -oP '^\d+\.\d+\.\d+')"
+          echo "version=${SEMVER}" >> "$GITHUB_OUTPUT"
+
+      - name: Packer init
+        working-directory: ${{ env.PACKER_DIR }}
+        run: packer init .
+
+      - name: Packer validate
+        working-directory: ${{ env.PACKER_DIR }}
+        env:
+          PKR_VAR_subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          PKR_VAR_tenant_id:       ${{ secrets.AZURE_TENANT_ID }}
+          PKR_VAR_client_id:       ${{ secrets.AZURE_CLIENT_ID }}
+          PKR_VAR_client_secret:   ${{ secrets.AZURE_CLIENT_SECRET }}
+          PKR_VAR_image_version:   ${{ steps.version.outputs.version }}
+        run: packer validate .
+
+      - name: Packer build
+        working-directory: ${{ env.PACKER_DIR }}
+        env:
+          PKR_VAR_subscription_id:       ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          PKR_VAR_tenant_id:             ${{ secrets.AZURE_TENANT_ID }}
+          PKR_VAR_client_id:             ${{ secrets.AZURE_CLIENT_ID }}
+          PKR_VAR_client_secret:         ${{ secrets.AZURE_CLIENT_SECRET }}
+          PKR_VAR_build_resource_group:  ${{ secrets.AZURE_BUILD_RG }}
+          PKR_VAR_gallery_resource_group: ${{ secrets.AZURE_GALLERY_RG }}
+          PKR_VAR_gallery_name:          ${{ secrets.AZURE_GALLERY_NAME }}
+          PKR_VAR_gallery_image_name:    ${{ secrets.AZURE_GALLERY_IMAGE_NAME }}
+          PKR_VAR_image_version:         ${{ steps.version.outputs.version }}
+        run: packer build -color=false -on-error=abort .
+
+      - name: Upload Packer manifest
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: packer-manifest-${{ steps.version.outputs.version }}
+          path: ${{ env.PACKER_DIR }}/packer-manifest.json
+          retention-days: 30

@@ -1,0 +1,38 @@
+#cloud-config
+# cloud-init/cloud-init.yaml
+# Minimal cloud-init user data for Nextcloud Azure Marketplace VM
+#
+# This template is rendered by Terraform before passing as custom_data.
+# Variables enclosed in ${...} are Terraform templatefile() substitutions.
+#
+# The Packer image already contains the full software stack.
+# cloud-init only: sets hostname, creates the nextcloud config.env,
+# and injects the admin SSH public key.
+
+hostname: ${hostname}
+fqdn: ${hostname}.${domain}
+manage_etc_hosts: true
+
+# Create the config.env consumed by nc-first-boot.sh
+write_files:
+  - path: /etc/nextcloud/config.env
+    owner: root:root
+    permissions: "0600"
+    content: |
+      NC_ADMIN_USER=${nc_admin_user}
+      NC_ADMIN_PASSWORD=${nc_admin_password}
+      NC_DB_PASSWORD=${nc_db_password}
+      REDIS_PASSWORD=${redis_password}
+      NC_TRUSTED_DOMAIN=${nc_trusted_domain}
+
+users:
+  - name: ${admin_username}
+    groups: [sudo]
+    sudo: "ALL=(ALL) NOPASSWD:ALL"
+    shell: /bin/bash
+    ssh_authorized_keys:
+      - ${admin_ssh_pubkey}
+
+# Trigger the first-boot service (it has its own ConditionPathExists guard)
+runcmd:
+  - systemctl start nextcloud-first-boot.service

@@ -1,0 +1,26 @@
+# terraform/terraform.tfvars.example
+# Copy to terraform.tfvars and fill in your values.
+# This file is committed; terraform.tfvars is git-ignored.
+
+subscription_id        = "00000000-0000-0000-0000-000000000000"
+tenant_id              = "00000000-0000-0000-0000-000000000000"
+client_id              = "00000000-0000-0000-0000-000000000000"
+client_secret          = "changeme"
+
+resource_group_name    = "rg-nextcloud-dev"
+location               = "canadacentral"
+environment            = "dev"
+
+vm_name                = "nextcloud-dev"
+vm_size                = "Standard_D4s_v3"
+admin_username         = "azureuser"
+admin_ssh_pubkey       = "ssh-ed25519 AAAA... you@host"
+ssh_source_ip          = "0.0.0.0/0"
+
+gallery_resource_group = "rg-nextcloud-gallery"
+gallery_name           = "galNextcloudHub"
+gallery_image_name     = "nextcloud-hub"
+image_version          = "0.1.0"
+
+data_disk_size_gb      = 128
+nc_admin_user          = "ncadmin"

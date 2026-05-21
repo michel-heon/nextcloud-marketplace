@@ -1,0 +1,23 @@
+# packer/nextcloud/build.auto.pkrvars.hcl.example
+# Copy to build.auto.pkrvars.hcl and fill in values
+# This file is ignored by .gitignore — NEVER commit secrets
+
+subscription_id        = "00000000-0000-0000-0000-000000000000"
+tenant_id              = "00000000-0000-0000-0000-000000000000"
+client_id              = "00000000-0000-0000-0000-000000000000"
+client_secret          = ""
+
+build_resource_group   = "rg-nextcloud-packer-build"
+gallery_resource_group = "rg-nextcloud-gallery"
+gallery_name           = "gal_nextcloud_marketplace"
+gallery_image_name     = "nextcloud-marketplace"
+replication_regions    = ["canadacentral", "eastus"]
+location               = "canadacentral"
+
+vm_size                = "Standard_D4s_v3"
+image_version          = "0.1.0"
+environment            = "dev"
+
+nc_version             = "31.0.2"
+php_version            = "8.3"
+postgresql_version     = "16"
