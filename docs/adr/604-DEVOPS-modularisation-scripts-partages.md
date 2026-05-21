@@ -37,9 +37,9 @@ superseded_by: null
 
 ### Situation Anticipée
 
-Le projet smw-marketplace comprend des scripts Bash pour :
-- **Provisioning MediaWiki** : `mediawiki-install.sh`, `mediawiki-configure.sh`
-- **Composants** : `apache-install.sh`, `mysql-install.sh`, `smw-install.sh`
+Le projet nextcloud-marketplace comprend des scripts Bash pour :
+- **Provisioning Nextcloud** : `nextcloud-install.sh`, `nextcloud-configure.sh`
+- **Composants** : `nginx-install.sh`, `mariadb-install.sh`, `nextcloud-install.sh`
 - **Sécurité** : `tls-configure.sh`, `firewall-configure.sh`, `security-harden.sh`
 - **Validation** : `vm-smoke-test.sh`, `marketplace-validate.sh`, `tls-validate.sh`
 
@@ -65,7 +65,7 @@ source env/generated/config.env 2>/dev/null || { log_error "Config manquante. La
 
 **Fonctions dupliquées** potentielles :
 - `check_command_exists()` dans smoke-test + validate = 2 copies
-- `wait_for_service()` dans mediawiki-test + smw-test = 2 copies
+- `wait_for_service()` dans nextcloud-test + nextcloud-test = 2 copies
 - `check_azure_login()` dans chaque script Azure = N copies
 - Gestion erreurs HTTP inconsistante entre scripts
 
@@ -102,7 +102,7 @@ source env/generated/config.env 2>/dev/null || { log_error "Config manquante. La
 │  Bibliothèques (scripts/lib/)                   │  ← Code réutilisable
 │  - lib/common.sh     (logging, couleurs, setup) │
 │  - lib/azure.sh      (Azure CLI helpers)        │
-│  - lib/server.sh       (helpers MediaWiki/Apache)      │
+│  - lib/server.sh       (helpers Nextcloud/Nginx)      │
 │  - lib/network.sh    (wait_for_service, TLS)    │
 └─────────────────────────────────────────────────┘
 ```
@@ -119,7 +119,7 @@ Créer les modules au fur et à mesure, refactoriser scripts existants progressi
 
 ```bash
 #!/usr/bin/env bash
-# lib/common.sh — Utilitaires communs smw-marketplace
+# lib/common.sh — Utilitaires communs nextcloud-marketplace
 # Source ce fichier: source "$(dirname "$0")/lib/common.sh"
 
 # Couleurs
@@ -207,7 +207,7 @@ retry() {
 
 #### `scripts/lib/azure.sh`
 
-**Responsabilité** : Helpers Azure CLI pour smw-marketplace
+**Responsabilité** : Helpers Azure CLI pour nextcloud-marketplace
 
 ```bash
 #!/usr/bin/env bash
@@ -264,28 +264,28 @@ get_latest_image_version() {
 
 #### `scripts/lib/server.sh`
 
-**Responsabilité** : Helpers spécifiques MediaWiki/Apache/MySQL
+**Responsabilité** : Helpers spécifiques Nextcloud/Nginx/MariaDB
 
 ```bash
 #!/usr/bin/env bash
-# lib/server.sh — Helpers spécifiques stack SMW
+# lib/server.sh — Helpers spécifiques stack Nextcloud
 
-# Vérifier que MediaWiki répond (endpoint HTTP)
-check_mediawiki_health() {
+# Vérifier que Nextcloud répond (endpoint HTTP)
+check_nextcloud_health() {
     local vivo_url="${1:-http://localhost:${MEDIAWIKI_PORT:-80}/server}"
     wait_for_service "$vivo_url" 30 10
 }
 
-# Vérifier API MediaWiki
-check_mediawiki_api() {
-    local mediawiki_api_url="${1:-http://localhost:${MEDIAWIKI_PORT:-80}/api.php}"
+# Vérifier API Nextcloud (status endpoint)
+check_nextcloud_status() {
+    local nextcloud_url="${1:-http://localhost/status.php}"
     local test_query='SELECT (COUNT(*) AS ?count) WHERE { ?s ?p ?o }'
     if curl -sf --data "query=$(python3 -c "import urllib.parse; print(urllib.parse.quote(\"$test_query\"))")" \
-            "$mediawiki_api_url" &>/dev/null; then
-        log_success "API MediaWiki opérationnel: $mediawiki_api_url"
+            "$nextcloud_url" &>/dev/null; then
+        log_success "Nextcloud opérationnel: $nextcloud_url"
         return 0
     else
-        log_error "API MediaWiki non disponible: $mediawiki_api_url"
+        log_error "Nextcloud non disponible: $nextcloud_url"
         return 1
     fi
 }
@@ -322,8 +322,8 @@ check_mysql_status() {
 ```bash
 #!/usr/bin/env bash
 # scripts/vm-smoke-test.sh
-# Tests smoke post-déploiement VM SMW
-# Usage: ./scripts/vm-smoke-test.sh [--mediawiki-url http://...] [--verbose]
+# Tests smoke post-déploiement VM Nextcloud
+# Usage: ./scripts/vm-smoke-test.sh [--nextcloud-url http://...] [--verbose]
 
 set -euo pipefail
 
@@ -340,7 +340,7 @@ VERBOSE="${VERBOSE:-false}"
 # Chargement configuration
 load_config
 
-log_section "Smoke Tests VM MediaWiki"
+log_section "Smoke Tests VM Nextcloud"
 
 # Vérifications requises
 check_required_commands curl az
@@ -349,11 +349,11 @@ check_required_commands curl az
 log_info "Test 1: Apache accessible"
 check_apache_status
 
-log_info "Test 2: MediaWiki répond"
-check_mediawiki_health "$MEDIAWIKI_URL"
+log_info "Test 2: Nextcloud répond"
+check_nextcloud_health "$NEXTCLOUD_URL"
 
-log_info "Test 3: API MediaWiki"
-check_mediawiki_api
+log_info "Test 3: API Nextcloud"
+check_nextcloud_status
 
 log_info "Test 4: MySQL accessible"
 check_mysql_status
@@ -369,19 +369,19 @@ scripts/
 ├── lib/                           # Bibliothèques partagées
 │   ├── common.sh                  # Logging, config, retry, wait_for_service
 │   ├── azure.sh                   # Helpers Azure CLI
-│   ├── server.sh                    # Helpers MediaWiki/Apache/MySQL
+│   ├── server.sh                    # Helpers Nextcloud/Nginx/MariaDB
 │   └── network.sh                 # Helpers TLS, HTTP checks
 │
 ├── vm-provision.sh                # Provisioning complet (appelle autres scripts)
 ├── vm-smoke-test.sh               # Smoke tests
 ├── vm-validate.sh                 # Validation image
 │
-├── mediawiki-install.sh                # Installation MediaWiki
-├── mediawiki-configure.sh              # Configuration MediaWiki
-├── apache-install.sh              # Installation Apache
+├── nextcloud-install.sh                # Installation Nextcloud
+├── nextcloud-configure.sh              # Configuration Nextcloud
+├── nginx-install.sh              # Installation Apache
 ├── apache-configure.sh            # Configuration Apache
-├── mysql-install.sh                # Installation MySQL
-├── smw-install.sh         # Installation smw-extensions
+├── mariadb-install.sh                # Installation MySQL
+├── nextcloud-install.sh         # Installation Nextcloud apps
 │
 ├── tls-configure.sh               # Configuration TLS
 ├── tls-validate.sh                # Validation TLS
@@ -429,7 +429,7 @@ scripts/
 
 | Date | Auteur | Changement | Raison |
 |------|--------|------------|--------|
-| 2026-02-21 | @dev-team | Création ADR-604 | Adaptation depuis og-nore/ADR-610 pour smw-marketplace |
+| 2026-02-21 | @dev-team | Création ADR-604 | Adaptation depuis og-nore/ADR-610 pour nextcloud-marketplace |
 
 **Note Packer** : Les provisioners Packer Shell dans une VM ne peuvent pas `source` des fichiers de `lib/` relatifs au dépôt. Pour les scripts de provisioning Packer, deux approches :
 1. Copier `scripts/lib/` via provisioner `file` avant les scripts Shell

@@ -48,8 +48,8 @@ effort: "medium"
 
 La publication d'une offre VM sur Azure Marketplace exige une image de machine virtuelle
 reproductible, immutable, et conforme aux exigences de certification Microsoft. Cette image
-doit inclure l'OS (Ubuntu 22.04 LTS), la pile applicative (PHP 8.2, Apache, MySQL, MediaWiki,
-Semantic MediaWiki), ainsi que tous les hardening de sécurité documentés dans ADR-300.
+doit inclure l'OS (Ubuntu 22.04 LTS), la pile applicative (PHP 8.2, Nginx, MariaDB, Redis,
+Nextcloud Hub), ainsi que tous les hardening de sécurité documentés dans ADR-300.
 
 Sans outillage dédié, la construction d'une telle image est manuelle, non reproductible, et
 difficilement auditée — trois critères éliminatoires pour une publication Marketplace.
@@ -63,7 +63,7 @@ versionnée dans Git.
 ## 💡 Décision
 
 **Utiliser HashiCorp Packer** (v1.11+) avec le plugin officiel `hashicorp/azure` (v2.x) et le
-builder `azure-arm` pour construire toutes les images VM du projet `smw-marketplace`.
+builder `azure-arm` pour construire toutes les images VM du projet `nextcloud-marketplace`.
 
 Les templates sont écrits en **HCL2** (fichiers `.pkr.hcl`), versionné dans Git, et exécutés
 dans le pipeline DevOps.
@@ -82,7 +82,7 @@ dans le pipeline DevOps.
 ### Structure du template principal
 
 ```hcl
-# packer/smw-vm.pkr.hcl
+# packer/nextcloud-vm.pkr.hcl
 
 packer {
   required_plugins {
@@ -93,21 +93,21 @@ packer {
   }
 }
 
-variable "smw_version"       { type = string }
-variable "mediawiki_version" { type = string }
+variable "nc_version"       { type = string }
+variable "nextcloud_version" { type = string }
 variable "php_version"       { type = string }
 variable "build_date"        { type = string }
 
 locals {
-  image_version = "${var.smw_version}.${var.build_date}"  # ex: 6.0.1.20260501
+  image_version = "${var.nc_version}.${var.build_date}"  # ex: 6.0.1.20260501
 }
 
-source "azure-arm" "smw" {
+source "azure-arm" "nextcloud" {
   # Authentification — Service Principal via variables d'environnement
   # ARM_CLIENT_ID, ARM_CLIENT_SECRET, ARM_SUBSCRIPTION_ID, ARM_TENANT_ID
 
-  resource_group_name = "rg-smw-marketplace"
-  storage_account     = "stsmwmarketplace"
+  resource_group_name = "rg-nextcloud-marketplace"
+  storage_account     = "stncmarketplace"
 
   # Image de base (Azure endorsée)
   image_publisher = "Canonical"
@@ -120,16 +120,16 @@ source "azure-arm" "smw" {
 
   # Destination : Azure Compute Gallery
   shared_image_gallery_destination {
-    resource_group  = "rg-smw-marketplace"
-    gallery_name    = "galSMWMarketplace"
-    image_name      = "smw-knowledge-base"
+    resource_group  = "rg-nextcloud-marketplace"
+    gallery_name    = "galNCMarketplace"
+    image_name      = "nextcloud"
     image_version   = local.image_version
     replication_regions = ["canadacentral"]
   }
 }
 
 build {
-  sources = ["source.azure-arm.smw"]
+  sources = ["source.azure-arm.nextcloud"]
 
   # Séquence des provisioners shell (voir ADR-613)
   provisioner "shell" {
@@ -161,10 +161,10 @@ packer validate packer/      # Valide la syntaxe HCL2 et les variables
 packer build packer/         # Lance le build dans Azure
 ```
 
-1. Packer provisionne une VM temporaire dans `rg-smw-marketplace`
+1. Packer provisionne une VM temporaire dans `rg-nextcloud-marketplace`
 2. Les scripts `provisioners/0X-*.sh` s'exécutent séquentiellement via SSH
 3. La VM est généralisée (`waagent -deprovision+user`)
-4. L'image est publiée dans `galSMWMarketplace/smw-knowledge-base/{version}`
+4. L'image est publiée dans `galNCMarketplace/nextcloud/{version}`
 5. La VM temporaire et ses ressources associées sont supprimées automatiquement
 
 ---
@@ -233,7 +233,7 @@ packer-init:       ## Initialise le plugin azure (~> 2)
 packer-validate:   ## Valide le template HCL2
 	packer validate -var-file=packer/variables.pkrvars.hcl packer/
 
-smw-build:         ## Construit l'image VM et la publie dans la Compute Gallery
+nextcloud-build:         ## Construit l'image VM et la publie dans la Compute Gallery
 	packer build -var-file=packer/variables.pkrvars.hcl packer/
 ```
 
@@ -244,7 +244,7 @@ smw-build:         ## Construit l'image VM et la publie dans la Compute Gallery
 ### Positives
 
 - **Reproductibilité** : chaque exécution produit une image identique à partir du même commit Git
-- **Traçabilité** : le numéro de version (`{SMW_VERSION}.{YYYYMMDD}`) est inscrit dans la
+- **Traçabilité** : le numéro de version (`{NC_VERSION}.{YYYYMMDD}`) est inscrit dans la
   Compute Gallery et lié au commit Git (voir ADR-603)
 - **Infrastructure as Code** : le template `.pkr.hcl` est versionné, reviewable, et testable
 - **Nettoyage automatique** : Packer détruit la VM temporaire de build après chaque exécution,
@@ -256,7 +256,7 @@ smw-build:         ## Construit l'image VM et la publie dans la Compute Gallery
 - **Licence BSL 1.1** : Packer ne peut pas être redistribué comme produit commercial dérivé ;
   l'usage pour construire des images destinées à Azure Marketplace est autorisé
 - **Temps de build** : 10 à 20 minutes par image complète (installation PHP, Apache, MySQL,
-  MediaWiki, SMW) ; le cache Blob Storage (ADR-616) réduit ce délai
+  Nextcloud, MariaDB) ; le cache Blob Storage (ADR-616) réduit ce délai
 - **Coût Azure** : une VM `Standard_D4s_v3` est provisionnée pendant la durée du build ;
   elle est facturée au prorata (typiquement < 0,20 € par build)
 

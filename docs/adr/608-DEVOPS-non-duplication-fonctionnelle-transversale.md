@@ -24,7 +24,7 @@ classification:
     - "bash"
     - "php"
 
-tags: ["DRY", "non-duplication", "refactoring", "bash", "python", "best-practices", "cross-language", "smw-marketplace"]
+tags: ["DRY", "non-duplication", "refactoring", "bash", "python", "best-practices", "cross-language", "nextcloud-marketplace"]
 stakeholders: ["@dev-team", "@architecture-team"]
 effort: "medium"
 ---
@@ -48,12 +48,12 @@ effort: "medium"
 
 ### Contexte
 
-Le projet **smw-marketplace** vise à créer une offre Azure Marketplace pour MediaWiki. Ce projet comporte plusieurs types de code :
+Le projet **nextcloud-marketplace** vise à créer une offre Azure Marketplace pour Nextcloud Hub. Ce projet comporte plusieurs types de code :
 
-- **Scripts Bash** : provisioning Packer, installation MediaWiki/MySQL/MySQL/Apache, configuration system
+- **Scripts Bash** : provisioning Packer, installation Nextcloud/MariaDB/Nginx, configuration system
 - **Scripts Python** : utilitaires de validation, tests automatisés, génération configuration
-- **Code PHP : extensions MediaWiki, customisations backend
-- **Code PHP** : interface PHP MediaWiki, scripts build
+- **Code PHP : intégration Nextcloud, customisations backend
+- **Code PHP** : interface PHP Nextcloud, scripts build
 
 Lors du développement, **une tendance naturelle est de réimplémenter localement des utilitaires génériques déjà existants ailleurs dans le projet**, faute de règle explicite et de pattern établi par langage.
 
@@ -65,8 +65,8 @@ Lors du développement, **une tendance naturelle est de réimplémenter localeme
 |----------|---------------------|--------|
 | Bash (`docker/backend/scripts/`, `docker/frontend/scripts/`) | Fonctions `log_error`, `log_success`, `check_env_var` copiées dans plusieurs scripts | Comportement inconsistant entre conteneurs |
 | Python (scripts de validation) | Fonctions d'init path, parsing YAML, validation env variables redupliquées | Maintenabilité dégradée |
-| PHP (extensions MediaWiki) | Utilitaires de parsing configuration, validation input HTTP dupliqués entre handlers | Correction d'un bug = éditer N handlers |
-| PHP (extensions MediaWiki) | Helpers HTTP, validation form, formatage données dupliqués | Risque de divergence comportementale |
+| PHP (intégration Nextcloud) | Utilitaires de parsing configuration, validation input HTTP dupliqués entre handlers | Correction d'un bug = éditer N handlers |
+| PHP (intégration Nextcloud) | Helpers HTTP, validation form, formatage données dupliqués | Risque de divergence comportementale |
 
 #### 2. Aucune règle transversale établie
 
@@ -79,14 +79,14 @@ Il n'existe pas de règle unifiée précisant :
 #### 3. Impact si non traité
 
 - **Court terme (0-3 mois)** : chaque nouvelle feature reproduit les utilitaires existants (copier-coller implicite)
-- **Moyen terme (3-12 mois)** : une correction d'un utilitaire (ex: gestion format config MediaWiki) nécessite de trouver et modifier toutes les copies
+- **Moyen terme (3-12 mois)** : une correction d'un utilitaire (ex: gestion format config Nextcloud) nécessite de trouver et modifier toutes les copies
 - **Long terme (12+ mois)** : divergence de comportement entre copies — bugs différents selon le script/handler appelé
 
 ---
 
 ## ✅ Décision
 
-**Nous adoptons une règle de non-duplication fonctionnelle obligatoire pour tous les langages du projet smw-marketplace, avec des patterns de centralisation spécifiques à chaque technologie.**
+**Nous adoptons une règle de non-duplication fonctionnelle obligatoire pour tous les langages du projet nextcloud-marketplace, avec des patterns de centralisation spécifiques à chaque technologie.**
 
 ### Règle Fondamentale (DRY — Don't Repeat Yourself)
 
@@ -100,7 +100,7 @@ Il n'existe pas de règle unifiée précisant :
 | 3+ | 🛑 Obligatoire | Extraire vers l'emplacement partagé adapté au langage |
 | 1 (prévisible) | 💡 Proactif | Si la fonction est clairement générique, la placer directement dans l'emplacement partagé |
 
-**Exception** : Les fonctions dont le contenu est **intentionnellement différent par domaine** ne sont pas des duplications, même si elles ont le même nom. Exemple : `validateItemMetadata(item)` peut exister dans différents modules MediaWiki avec des règles métier distinctes. Ce n'est **pas** une duplication.
+**Exception** : Les fonctions dont le contenu est **intentionnellement différent par domaine** ne sont pas des duplications, même si elles ont le même nom. Exemple : ``validateItemMetadata(item)` peut exister dans différents modules Nextcloud avec des règles métier distinctes. Ce n'est **pas** une duplication.
 
 ---
 
@@ -134,7 +134,7 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"   # ajuster selon profondeur
 source "$PROJECT_ROOT/shared/bash/functions.sh"
 
 # Utilisation
-log_success "MediaWiki backend démarré"
+log_success "Nextcloud démarré"
 log_error   "Variable MEDIAWIKI_DB_HOST manquante"
 check_required_vars MEDIAWIKI_DB_HOST MEDIAWIKI_DB_PASSWORD MYSQL_HOST
 ```
@@ -180,7 +180,7 @@ shared/
     utils/
       env_utils.py      ← chargement .env, validation variables
       file_utils.py     ← I/O fichiers, résolution chemins
-      yaml_utils.py     ← parsing frontmatter YAML, config MediaWiki
+      yaml_utils.py     ← parsing frontmatter YAML, config Nextcloud
       logging_utils.py  ← logging standardisé
       azure_utils.py    ← helpers Azure SDK (Resource Manager, Storage)
 ```
@@ -210,7 +210,7 @@ sys.path.insert(0, str(PROJECT_ROOT / "shared" / "python"))
 
 ---
 
-### PHP — Extensions MediaWiki et customisations
+### PHP — Apps Nextcloud et customisations
 
 **Mécanisme de partage :** classe abstraite parente ou classe utilitaire statique
 
@@ -219,7 +219,7 @@ sys.path.insert(0, str(PROJECT_ROOT / "shared" / "python"))
 Applicable pour les utilitaires utilisés par **tous les handlers** d'un même contexte.
 
 ```php
-// ✅ CORRECT — dans AbstractMediaWikiExtension.php
+// ✅ CORRECT — dans AbstractNextcloudApp.php
 protected static String extractHeader(HttpServletRequest request, String headerName) { ... }
 protected static boolean validateMetadata(MetadataValue metadata) { ... }
 
@@ -227,7 +227,7 @@ protected static boolean validateMetadata(MetadataValue metadata) { ... }
 String authToken = extractHeader(request, "Authorization");
 ```
 
-**Emplacement :** classe abstraite du contexte concerné (ex: `AbstractMediaWikiExtension`, `AbstractRestController`)
+**Emplacement :** classe abstraite du contexte concerné (ex: `AbstractNextcloudApp`, `AbstractRestController`)
 
 **Règle :** Les sous-classes n'implémentent jamais une méthode utilitaire déjà disponible via `super`.
 
@@ -236,7 +236,7 @@ String authToken = extractHeader(request, "Authorization");
 Applicable pour les utilitaires **transversaux à plusieurs contextes**.
 
 ```php
-// ✅ CORRECT — dans MediaWiki\Marketplace\Utils\RequestUtils
+// ✅ CORRECT — dans Nextcloud\Marketplace\Utils\RequestUtils
 public final class RequestUtils {
     private RequestUtils() {}
 
@@ -255,7 +255,7 @@ public final class RequestUtils {
 
 ```php
 // ❌ INTERDIT — réimplémenter extractHeader dans un nouveau handler
-public class CustomRestController extends AbstractMediaWikiExtension {
+public class CustomRestController extends AbstractNextcloudApp {
     private static String extractHeader(...) { /* copie-collée */ }
 }
 
@@ -265,7 +265,7 @@ public class CustomRestController extends AbstractMediaWikiExtension {
 
 ---
 
-### PHP / PHP — Frontend PHP (MediaWiki) et scripts
+### PHP / PHP — Frontend PHP (Nextcloud) et scripts
 
 **Mécanisme de partage :** module ES dans `shared/ts/` (ou `shared/js/` si CommonJS).
 
@@ -291,7 +291,7 @@ import { retryRequest, handleHttpError } from '../../../shared/ts/utils/httpUtil
 const apiUrl = requireEnvVar('MEDIAWIKI_URL'');
 ```
 
-**Règle :** Toute fonction HTTP ou validation réutilisable entre modules PHP (MediaWiki) est placée dans `shared/ts/utils/`, PAS dupliquée dans chaque composant.
+**Règle :** Toute fonction HTTP ou validation réutilisable entre modules PHP (Nextcloud) est placée dans `shared/ts/utils/`, PAS dupliquée dans chaque composant.
 
 ---
 
@@ -324,7 +324,7 @@ const apiUrl = requireEnvVar('MEDIAWIKI_URL'');
 | Contrainte | Impact | Mitigation |
 |-----------|--------|-----------|
 | `shared/bash/` n'existe pas encore | Règle Bash non applicable immédiatement | Créer `shared/bash/functions.sh` lors du prochain script Bash créé ou refactorisé |
-| `shared/ts/` n'existe pas encore | Règle TS non applicable immédiatement | Créer lors de la première customisation PHP (MediaWiki) dépassant 2 fichiers |
+| `shared/ts/` n'existe pas encore | Règle TS non applicable immédiatement | Créer lors de la première customisation PHP (Nextcloud) dépassant 2 fichiers |
 | Coût cognitif de vérification | Avant chaque nouvelle fonction, chercher si elle existe | Atténué par `shared/README.md` et convention de nommage claire |
 | Risque de sobre-abstraction | Utilitaire trop générique = difficile à utiliser | Appliquer le seuil strict : abstraction seulement si 2+ usages réels, pas anticipés |
 
@@ -361,13 +361,13 @@ const apiUrl = requireEnvVar('MEDIAWIKI_URL'');
 - [ ] Créer `shared/python/utils/env_utils.py` si `load_dotenv` + `check_vars` apparaissent dans 2+ scripts
 - [ ] Documenter dans `shared/python/README.md`
 
-### Phase 3 — PHP (si extensions MediaWiki créées)
+### Phase 3 — PHP (si apps Nextcloud créées)
 
-- [ ] Audit des customisations MediaWiki pour identifier duplications
+- [ ] Audit des customisations Nextcloud pour identifier duplications
 - [ ] Créer classe abstraite ou utilitaire selon Pattern A/B
 - [ ] Valider via tests unitaires
 
-### Phase 4 — PHP (si customisations PHP (MediaWiki) créées)
+### Phase 4 — PHP (si customisations PHP (Nextcloud) créées)
 
 - [ ] Créer `shared/ts/utils/` à la première customisation multi-fichiers
 - [ ] Documenter convention d'import dans `shared/README.md`
@@ -395,7 +395,7 @@ const apiUrl = requireEnvVar('MEDIAWIKI_URL'');
 | [ADR-601](./601-DEVOPS-nomenclature-scripts.md) | Complémentaire | Nomenclature scripts → conventions nommage des modules partagés (`{object}-{action}.sh`) |
 | [ADR-602](./602-DEVOPS-makefile-orchestrateur.md) | Orthogonal | Makefile = interface ; cet ADR = contenu réutilisable sourcé par targets |
 | [ADR-604](./604-DEVOPS-modularisation-scripts-partages.md) | **Spécialisé par cet ADR** | Modularisation = structure `shared/` ; cet ADR = règle DRY obligatoire |
-| [[ADR-609](./609-DEVOPS-php-version-strategy.md) | Complémentaire | Stack PHP SMW → patterns DRY PHP définis ici s'appliquent aux extensions |
+| [[ADR-609](./609-DEVOPS-php-version-strategy.md) | Complémentaire | Stack PHP Nextcloud → patterns DRY PHP définis ici s'appliquent aux extensions |
 
 ### Fichiers Concernés (au moment de la décision)
 

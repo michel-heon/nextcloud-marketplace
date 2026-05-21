@@ -107,7 +107,7 @@ cd packer/dev
 make vm-dev-create
 
 # 2. Tester un provisioner spécifique
-make provision-push SCRIPT=04    # 05-install-mediawiki.sh
+make provision-push SCRIPT=04    # 05-install-nextcloud.sh
 
 # 3. Debug via SSH si erreur
 make vm-dev-ssh
@@ -115,7 +115,7 @@ make vm-dev-ssh
 exit
 
 # 4. Corriger le script localement
-code ../provisioners/05-install-mediawiki.sh
+code ../provisioners/05-install-nextcloud.sh
 
 # 5. Re-pousser pour valider
 make provision-push SCRIPT=04

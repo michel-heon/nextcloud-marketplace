@@ -1,6 +1,6 @@
 ---
 adr: 613
-title: "Architecture et Validation des Provisioners Packer — SMW Marketplace"
+title: "Architecture et Validation des Provisioners Packer — Nextcloud Marketplace"
 status: "accepted"
 date: 2026-04-16
 superseded_by: null
@@ -25,16 +25,16 @@ classification:
     - "bash"
     - "systemd"
     - "php"
-    - "mediawiki"
-    - "mysql"
-    - "apache"
+    - "nextcloud"
+    - "mariadb"
+    - "nginx"
 
-tags: ["packer", "provisioner", "validation", "architecture", "systemd", "azure-marketplace", "mediawiki", "smw"]
+tags: ["packer", "provisioner", "validation", "architecture", "systemd", "azure-marketplace", "nextcloud"]
 stakeholders: ["@devops-team", "@architecture-team"]
 effort: "high"
 ---
 
-# ADR 613: Architecture et Validation des Provisioners Packer — SMW Marketplace
+# ADR 613: Architecture et Validation des Provisioners Packer — Nextcloud Marketplace
 
 ## 📊 Vue d'Ensemble
 
@@ -55,9 +55,9 @@ effort: "high"
 
 ### Problématique
 
-Le processus de création d'image Azure Marketplace **Semantic MediaWiki (SMW)** via Packer utilise **8 scripts de provisioning exécutés séquentiellement**. Chaque script effectue des opérations critiques :
+Le processus de création d'image Azure Marketplace **Nextcloud Hub** via Packer utilise **9 scripts de provisioning exécutés séquentiellement**. Chaque script effectue des opérations critiques :
 
-- Installation de composants système (PHP, Apache, MySQL, MediaWiki, SMW)
+- Installation de composants système (PHP, Nginx, MariaDB, Redis, Nextcloud)
 - Configuration de services (Apache, PHP-FPM, MySQL)
 - Gestion de la propriété des fichiers (`www-data`)
 - Configuration systemd
@@ -99,28 +99,28 @@ L'architecture utilise **8 provisioners exécutés de manière séquentielle** a
 │      └─ Locales et timezone                                       │
 │                                                                    │
 │  02-install-php.sh           → Runtime PHP                        │
-│      ├─ PPA ondrej/php → PHP 8.2 + extensions MediaWiki/SMW      │
+│      ├─ PPA ondrej/php → PHP 8.2 + extensions Nextcloud          │
 │      ├─ Extensions: mysql, xml, mbstring, intl, curl, zip, gd    │
 │      └─ Composer installé globalement                             │
 │                                                                    │
-│  03-install-apache.sh        → Serveur web                        │
+│  03-install-nginx.sh        → Serveur web                        │
 │      ├─ Apache 2.4 + PHP-FPM socket Unix                         │
 │      ├─ mod_rewrite, mod_ssl, mod_headers activés                 │
 │      └─ VirtualHost HTTP → HTTPS redirect                         │
 │                                                                    │
-│  04-install-mysql.sh         → Base de données                    │
+│  04-install-mariadb.sh         → Base de données                    │
 │      ├─ MySQL 8.x (Server + Client)                              │
 │      ├─ Datadir: /data/mysql (disque données)                    │
 │      └─ mysql_secure_installation automatisé                      │
 │                                                                    │
-│  05-install-mediawiki.sh     → Wiki engine                        │
-│      ├─ MediaWiki 1.43.x téléchargé depuis mediawiki.org         │
-│      ├─ Installé dans /opt/mediawiki                             │
+│  05-install-nextcloud.sh     → Wiki engine                        │
+│      ├─ Nextcloud Hub 31.x téléchargé depuis nextcloud.com        │
+│      ├─ Installé dans /var/www/nextcloud                         │
 │      ├─ Ownership: www-data:www-data                             │
 │      └─ Liens symboliques Apache configurés                       │
 │                                                                    │
-│  06-install-smw.sh           → Extension sémantique               │
-│      ├─ SMW 6.0.1 via Composer                                   │
+│  06-install-nextcloud.sh           → Extension sémantique               │
+│      ├─ Apps Nextcloud via occ app:install                       │
 │      ├─ Extensions complémentaires: SemanticResultFormats, etc.  │
 │      └─ LocalSettings.php partiel (complété via cloud-init boot) │
 │                                                                    │
@@ -144,20 +144,20 @@ L'architecture utilise **8 provisioners exécutés de manière séquentielle** a
 Lors du déploiement client depuis Azure Marketplace, un script cloud-init s'exécute au **premier démarrage** pour :
 
 ```yaml
-# /etc/cloud/cloud.cfg.d/99-smw-firstboot.cfg
+# /etc/cloud/cloud.cfg.d/99-nextcloud-firstboot.cfg
 runcmd:
-  - /opt/smw-marketplace/scripts/firstboot/configure-mediawiki.sh
-  - /opt/smw-marketplace/scripts/firstboot/configure-mysql.sh
-  - /opt/smw-marketplace/scripts/firstboot/configure-tls.sh
-  - /opt/smw-marketplace/scripts/firstboot/run-mediawiki-install.sh
-  - /opt/smw-marketplace/scripts/firstboot/run-smw-update.sh
+  - /opt/nextcloud-marketplace/scripts/firstboot/configure-nextcloud.sh
+  - /opt/nextcloud-marketplace/scripts/firstboot/configure-mysql.sh
+  - /opt/nextcloud-marketplace/scripts/firstboot/configure-tls.sh
+  - /opt/nextcloud-marketplace/scripts/firstboot/run-nextcloud-install.sh
+  - /opt/nextcloud-marketplace/scripts/firstboot/run-nextcloud-maintenance.sh
 ```
 
 **Responsabilités cloud-init (post-déploiement client) :**
 - Création base de données MySQL avec mot de passe fourni par le client (ARM param `mysqlPassword`)
 - Configuration `LocalSettings.php` avec domaine client (`wikiUrl`)
-- Exécution de `maintenance/install.php` (installation MediaWiki initiale)
-- Exécution de `maintenance/update.php` (initialisation tables SMW)
+- Exécution de `occ maintenance:install` (installation Nextcloud initiale)
+- Exécution de `occ upgrade` (initialisation et mise à jour DB)
 - Configuration TLS avec certificat Let's Encrypt ou custom
 
 ---
@@ -170,7 +170,7 @@ runcmd:
 
 ```bash
 # Répertoires sur le disque de données (128 GB)
-mkdir -p /data/uploads    # Stockage médias MediaWiki
+mkdir -p /data/nextcloud-data    # Stockage données Nextcloud
 mkdir -p /data/mysql      # Datadir MySQL
 mkdir -p /data/logs/apache
 mkdir -p /data/logs/php
@@ -188,7 +188,7 @@ apt-get install -y curl wget git unzip ca-certificates gnupg lsb-release
 
 ### 02 — install-php.sh
 
-**Responsabilité** : Installation PHP 8.2 + extensions MediaWiki/SMW
+**Responsabilité** : Installation PHP 8.2 + extensions Nextcloud
 
 ```bash
 add-apt-repository ppa:ondrej/php
@@ -214,7 +214,7 @@ curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin
 
 ---
 
-### 03 — install-apache.sh
+### 03 — install-nginx.sh
 
 **Responsabilité** : Serveur web Apache 2.4 + intégration PHP-FPM
 
@@ -225,9 +225,9 @@ a2enmod rewrite ssl headers proxy_fcgi setenvif
 a2enconf php8.2-fpm
 
 # VirtualHost par défaut — sera remplacé cloud-init avec domaine réel
-cp /opt/smw-marketplace/config/apache/smw-default.conf \
-   /etc/apache2/sites-available/smw.conf
-a2ensite smw
+cp /opt/nextcloud-marketplace/config/nginx/nextcloud.conf \
+   /etc/nginx/sites-available/nextcloud.conf
+ln -s /etc/nginx/sites-available/nextcloud.conf /etc/nginx/sites-enabled/
 a2dissite 000-default
 ```
 
@@ -240,7 +240,7 @@ a2dissite 000-default
 
 ---
 
-### 04 — install-mysql.sh
+### 04 — install-mariadb.sh
 
 **Responsabilité** : Installation MySQL 8.x avec datadir sur disque de données
 
@@ -272,63 +272,63 @@ SQL
 
 ---
 
-### 05 — install-mediawiki.sh
+### 05 — install-nextcloud.sh
 
-**Responsabilité** : Téléchargement et installation MediaWiki 1.43.x
+**Responsabilité** : Téléchargement et installation Nextcloud Hub 31.x
 
 ```bash
 MW_VERSION="1.43.0"
 cd /tmp
-wget "https://releases.wikimedia.org/mediawiki/1.43/mediawiki-${MW_VERSION}.tar.gz"
-tar -xzf "mediawiki-${MW_VERSION}.tar.gz"
-mv "mediawiki-${MW_VERSION}" /opt/mediawiki
+wget "https://download.nextcloud.com/server/releases/nextcloud-${NC_VERSION}.tar.bz2"
+tar -xjf "nextcloud-${NC_VERSION}.tar.bz2"
+mv nextcloud /var/www/nextcloud
 
-chown -R www-data:www-data /opt/mediawiki
+chown -R www-data:www-data /var/www/nextcloud
 
 # Lien symbolique Apache
-ln -s /opt/mediawiki /var/www/html/wiki
+# webroot is /var/www/nextcloud directly
 
 # Répertoire uploads sur disque de données
 mkdir -p /data/uploads
 chown www-data:www-data /data/uploads
-ln -s /data/uploads /opt/mediawiki/images/uploads
+ln -s /data/nextcloud-data /var/www/nextcloud/data
 ```
 
 **Ownership final** :
-- `/opt/mediawiki` → `www-data:www-data`
+- `/var/www/nextcloud` → `www-data:www-data`
 - `/data/uploads` → `www-data:www-data`
 
 **Préconditions** : Apache + PHP installés  
-**Postconditions** : `/opt/mediawiki/index.php` existe
+**Postconditions** : `/var/www/nextcloud/index.php` existe
 
 ---
 
-### 06 — install-smw.sh
+### 06 — install-nextcloud.sh
 
-**Responsabilité** : Installation SMW 6.0.1 via Composer + extensions complémentaires
+**Responsabilité** : Installation Nextcloud Hub + apps via occ
 
 ```bash
-cd /opt/mediawiki
+cd /var/www/nextcloud
 
-# SMW via Composer
-sudo -u www-data composer require --no-update mediawiki/semantic-media-wiki "~6.0"
-sudo -u www-data composer require --no-update mediawiki/semantic-result-formats "*"
+# Installation apps Nextcloud via occ
+sudo -u www-data php /var/www/nextcloud/occ app:install user_saml
+sudo -u www-data php /var/www/nextcloud/occ app:install richdocuments
 sudo -u www-data composer update --no-dev -o
 
 # LocalSettings.php partiel (sans credentials — complété cloud-init)
-cp /opt/smw-marketplace/config/mediawiki/LocalSettings.partial.php \
-   /opt/mediawiki/LocalSettings.php
-chown www-data:www-data /opt/mediawiki/LocalSettings.php
+cp /opt/nextcloud-marketplace/config/nextcloud/config.partial.php \
+   /var/www/nextcloud/config/config.php
+chown www-data:www-data /var/www/nextcloud/config/config.php
 ```
 
 **LocalSettings.partial.php contient :**
-- `wfLoadExtension('SemanticMediaWiki');` + appel `enableSemantics()`
+- `occ app:enable user_saml` + configuration SAML
 - `$wgDBtype = 'mysql';`
 - Configuration de base (langue, namespace, upload path)
 - **Ne contient PAS** : `$wgDBserver`, `$wgDBname`, `$wgDBuser`, `$wgDBpassword`, `$wgServer` — fournis par cloud-init
 
-**Préconditions** : MediaWiki installé, PHP + Composer disponibles  
-**Postconditions** : `vendor/autoload.php` existe ; `extensions/SemanticMediaWiki/` existe
+**Préconditions** : Nextcloud installé, PHP disponible  
+**Postconditions** : `apps/user_saml/` existe ; Nextcloud opérationnel
 
 ---
 
@@ -346,7 +346,7 @@ ufw --force enable
 
 # fail2ban
 apt-get install -y fail2ban
-cp /opt/smw-marketplace/config/fail2ban/jail.local /etc/fail2ban/jail.local
+cp /opt/nextcloud-marketplace/config/fail2ban/jail.local /etc/fail2ban/jail.local
 
 # auditd
 apt-get install -y auditd audispd-plugins
@@ -416,8 +416,8 @@ waagent -force -deprovision+user
 | PHP version | `php -v` | `8.2.x` |
 | Apache status | `apache2ctl status` | Running |
 | MySQL ping | `mysqladmin ping` | `mysqld is alive` |
-| MediaWiki existe | `ls /opt/mediawiki/index.php` | Fichier présent |
-| SMW installé | `ls /opt/mediawiki/extensions/SemanticMediaWiki` | Répertoire présent |
+| Nextcloud existe | `ls /var/www/nextcloud/index.php` | Fichier présent |
+| user_saml installé | `ls /var/www/nextcloud/apps/user_saml` | Répertoire présent |
 | UFW actif | `ufw status` | `Status: active` |
 | TLS config | `apache2ctl -D DUMP_MODULES` | `ssl_module` présent |
 | SSH password | `sshd -T \| grep passwordauth` | `no` |
@@ -450,8 +450,8 @@ Points vérifiés automatiquement :
 
 | Répertoire | Owner | Groupe | Provisioner |
 |------------|-------|--------|-------------|
-| `/opt/mediawiki` | `www-data` | `www-data` | 05-install-mediawiki |
-| `/data/uploads` | `www-data` | `www-data` | 05-install-mediawiki |
+| `/var/www/nextcloud` | `www-data` | `www-data` | 06-install-nextcloud |
+| `/data/nextcloud-data` | `www-data` | `www-data` | 06-install-nextcloud |
 | `/data/mysql` | `mysql` | `mysql` | 04-install-mysql |
 | `/data/logs/apache` | `www-data` | `www-data` | 01-install-base |
 | `/data/logs/php` | `www-data` | `www-data` | 01-install-base |
@@ -478,7 +478,7 @@ Points vérifiés automatiquement :
 | Credentials MySQL dans l'image | 🔴 Critique — rejet certification | Nettoyage dans 08-cleanup-generalize.sh |
 | `maintenance/install.php` dans Packer | 🔴 Critique — BDD non configurée | Exécution uniquement dans cloud-init |
 | `history` non nettoyé | 🔴 Critique — rejet certification | Nettoyage explicite dans 08 |
-| Ownership mixte www-data/root sur `/opt/mediawiki` | 🟡 — erreurs permission PHP-FPM | Ownership homogène `www-data` dès 05 |
+| Ownership mixte www-data/root sur `/var/www/nextcloud` | 🟡 — erreurs permission PHP-FPM | Ownership homogène `www-data` dès 06 |
 | Composer en root | 🟡 — fichiers owner root dans vendor/ | `sudo -u www-data composer` |
 
 ---
@@ -497,7 +497,7 @@ grep -r "password\|passwd\|secret\|token" packer/provisioners/ | grep -v "^#" ||
 @echo "✅ Validation statique OK"
 
 vm-build: provisioner-validate
-cd packer && packer build smw-vm.pkr.hcl
+cd packer && packer build nextcloud-vm.pkr.hcl
 
 vm-smoke-test:
 @echo "Tests smoke post-déploiement..."
@@ -512,8 +512,8 @@ ssh -i $(SSH_KEY) $(VM_USER)@$(VM_IP) 'apache2ctl status'
 
 - [Packer Azure Plugin — azure-arm builder](https://developer.hashicorp.com/packer/integrations/hashicorp/azure/latest/components/builder/arm)
 - [Azure VM Marketplace Certification Tool](https://docs.microsoft.com/en-us/azure/marketplace/azure-vm-certification-faq)
-- [MediaWiki Installation Guide](https://www.mediawiki.org/wiki/Manual:Installation_guide)
-- [SMW Installation Guide](https://www.semantic-mediawiki.org/wiki/Help:Installation)
+- [Nextcloud Installation Guide](https://docs.nextcloud.com/server/latest/admin_manual/installation/)
+- [Nextcloud Apps](https://apps.nextcloud.com/)
 - [ondrej/php PPA](https://launchpad.net/~ondrej/+archive/ubuntu/php)
 - ADR-200 : Infrastructure Azure VM
 - ADR-300 : Sécurité et hardening
@@ -523,4 +523,4 @@ ssh -i $(SSH_KEY) $(VM_USER)@$(VM_IP) 'apache2ctl status'
 
 | Date | Auteur | Changement | Raison |
 |------|--------|------------|--------|
-| 2026-04-16 | @devops-team | Création ADR-613 | Architecture provisioners SMW Marketplace |
+| 2026-04-16 | @devops-team | Création ADR-613 | Architecture provisioners Nextcloud Marketplace |

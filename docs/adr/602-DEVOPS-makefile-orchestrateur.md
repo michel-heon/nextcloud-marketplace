@@ -35,9 +35,9 @@ superseded_by: null
 
 ## 🎯 Contexte
 
-Le projet smw-marketplace comprend plusieurs types d'opérations distinctes :
+Le projet nextcloud-marketplace comprend plusieurs types d'opérations distinctes :
 - **Build image VM** : Construction Packer, validation, publication Marketplace
-- **Provisioning MediaWiki : Installation Apache, MySQL, PHP-FPM, MediaWiki et extensions SMW
+- **Provisioning Nextcloud : Installation Nginx, MariaDB, PHP-FPM, Nextcloud
 - **Tests et validation** : Smoke tests VM, certification Marketplace, TLS checks
 - **Infrastructure Azure** : Gestion Resource Groups, images, déploiements test
 
@@ -60,12 +60,12 @@ Le Makefile racine :
 ### Structure Standard du Makefile
 
 ```makefile
-# Makefile - smw-marketplace
-# Orchestration construction VM MediaWiki (SMW) pour Azure Marketplace
+# Makefile - nextcloud-marketplace
+# Orchestration construction VM Nextcloud pour Azure Marketplace
 
 .PHONY: help setup clean \
         vm-build vm-validate vm-smoke-test \
-        smw-install wiki-test \
+        nextcloud-install nextcloud-test \
         tls-validate \
         marketplace-validate marketplace-publish
 
@@ -89,7 +89,7 @@ NC    := \033[0m
 
 help: ## Afficher cette aide
 	@echo "$(BLUE)══════════════════════════════════════════════════════$(NC)"
-	@echo "$(GREEN)  smw-marketplace — Azure Marketplace VM Builder    $(NC)"
+	@echo "$(GREEN)  nextcloud-marketplace — Azure Marketplace VM Builder    $(NC)"
 	@echo "$(BLUE)══════════════════════════════════════════════════════$(NC)"
 	@awk 'BEGIN {FS = ":.*##"} /^[a-zA-Z_-]+:.*?##/ { printf "  $(GREEN)%-25s$(NC) %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
 
@@ -113,9 +113,9 @@ check-env: ## Vérifier que la configuration est présente
 
 ##@ Construction Image VM
 
-vm-build: check-env ## Construire l'image VM MediaWiki avec Packer
-	@echo "$(BLUE)Construction image VM MediaWiki (SMW)...$(NC)"...$(NC)"
-	@echo "$(BLUE)Version SMW: $(SMW_VERSION) | Version MediaWiki: $(MEDIAWIKI_VERSION) | Région: $(AZURE_LOCATION)$(NC)"
+vm-build: check-env ## Construire l'image VM Nextcloud avec Packer
+	@echo "$(BLUE)Construction image VM Nextcloud...$(NC)"
+	@echo "$(BLUE)Version NC: $(NC_VERSION) | Région: $(AZURE_LOCATION)$(NC)"
 	@packer init $(PACKER_TEMPLATE)
 	@packer build -var-file=$(PACKER_VARS) $(PACKER_TEMPLATE)
 	@echo "$(GREEN)✅ Image VM construite$(NC)"
@@ -135,11 +135,11 @@ vm-smoke-test: check-env ## Exécuter smoke tests sur VM déployée
 tls-validate: ## Valider la configuration TLS de la VM
 	@$(SCRIPTS_DIR)/tls-validate.sh
 
-wiki-test: ## Tester que MediaWiki répond correctement (endpoint check) (endpoint check)
+nextcloud-test: ## Tester que Nextcloud répond correctement (endpoint check) (endpoint check)
 	@$(SCRIPTS_DIR)/server-test.sh
 
-smw-test: ## Tester que Semantic MediaWiki est opérationnel
-	@$(SCRIPTS_DIR)/smw-test.sh
+nextcloud-test: ## Tester que Nextcloud est opérationnel
+	@$(SCRIPTS_DIR)/nextcloud-test.sh
 
 ##@ Azure Marketplace
 
@@ -174,7 +174,7 @@ clean: ## Nettoyer fichiers temporaires et générés
 version: ## Afficher versions des outils
 	@echo "Packer:  $$(packer version)"
 	@echo "Azure CLI: $$(az version --query '"azure-cli"' -o tsv)"
-	@echo "SMW: $(SMW_VERSION) | MediaWiki: $(MEDIAWIKI_VERSION)"
+	@echo "NC: $(NC_VERSION)"
 ```
 
 ### Hiérarchie des règles
@@ -207,7 +207,7 @@ vm-build: check-env  ## Construire l'image VM
 ```makefile
 # ❌ MAUVAIS: Logique métier inline
 wiki-configure:
-	@sed -i "s/WIKI_URL=.*/WIKI_URL=$(WIKI_URL)/" /opt/mediawiki/LocalSettings.php
+	@sed -i "s/NEXTCLOUD_HOSTNAME=.*/NEXTCLOUD_HOSTNAME=$(NEXTCLOUD_HOSTNAME)/" /var/www/nextcloud/config/config.php
 	@if [ -d "/usr/local/server/home" ]; then \
 		cp config/applicationSetup.n3 /usr/local/server/home/config/; \
 		...
@@ -217,7 +217,7 @@ wiki-configure:
 **Pattern correct** :
 ```makefile
 # ✅ BON: Orchestrateur → script
-wiki-configure: ## Configurer MediaWiki post-installation
+nextcloud-configure: ## Configurer Nextcloud post-installation
 	@$(SCRIPTS_DIR)/server-configure.sh
 ```
 
@@ -265,4 +265,4 @@ Chaque projet/sous-répertoire avec Makefile doit implémenter :
 
 | Date | Auteur | Changement | Raison |
 |------|--------|------------|--------|
-| 2026-02-21 | @dev-team | Création ADR-602 | Adaptation depuis og-nore/ADR-607 pour smw-marketplace |
+| 2026-02-21 | @dev-team | Création ADR-602 | Adaptation depuis og-nore/ADR-607 pour nextcloud-marketplace |

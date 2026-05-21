@@ -1,6 +1,6 @@
 ---
 adr: 609
-title: "Stratégie Version PHP — PHP 8.2 pour Semantic MediaWiki 6.0.1"
+title: "Stratégie Version PHP — PHP 8.2 pour Nextcloud Hub 31"
 status: "accepted"
 date: 2026-04-04
 classification:
@@ -15,11 +15,10 @@ classification:
   scope: "strategic"
   tech_areas:
     - "php"
-    - "mediawiki"
-    - "semantic-mediawiki"
-    - "apache"
+    - "nextcloud"
+    - "nginx"
 
-tags: ["php-8.2", "mediawiki", "semantic-mediawiki", "smw", "version-strategy"]
+tags: ["php-8.2", "nextcloud", "nextcloud-hub", "version-strategy"]
 stakeholders: ["@dev-team", "@devops-team"]
 effort: "low"
 related_issues: []
@@ -28,7 +27,7 @@ replaces: null
 superseded_by: null
 ---
 
-# ADR 609: Stratégie Version PHP — PHP 8.2 pour Semantic MediaWiki 6.0.1
+# ADR 609: Stratégie Version PHP — PHP 8.2 pour Nextcloud Hub 31
 
 ## 📋 Vue d'Ensemble
 
@@ -45,39 +44,39 @@ superseded_by: null
 
 ### Problème
 
-Semantic MediaWiki 6.0.1 supporte une plage de versions PHP : **PHP 8.1 à PHP 8.4**.
+Nextcloud Hub 31.x supporte une plage de versions PHP : **PHP 8.1 à PHP 8.4**.
 Il faut choisir une version précise à installer dans l'image VM afin de garantir :
-- Compatibilité totale avec SMW 6.0.1 et MediaWiki 1.43.x
+- Compatibilité totale avec Nextcloud Hub 31.x
 - Disponibilité du paquet sur Ubuntu 22.04 LTS (via PPA `ondrej/php`)
 - Stabilité et support à long terme
 
 ### Plage de compatibilité officielle
 
-| Version PHP | Compatible SMW 6.0.1 | Compatible MediaWiki 1.43.x | Statut |
+| Version PHP | Compatible Nextcloud 31.x | Statut |
 |-------------|----------------------|------------------------------|--------|
 | PHP 8.1 | ✅ Oui | ✅ Oui | Security fixes only (EOL Nov 2024) |
 | **PHP 8.2** | ✅ Oui | ✅ Oui | **Active support (EOL Dec 2026)** ← Retenu |
 | PHP 8.3 | ✅ Oui | ✅ Oui | Active support (EOL Dec 2027) |
 | PHP 8.4 | ✅ Oui | ✅ Oui | Active support (EOL Dec 2028) |
 
-Sources : [semantic-mediawiki.org/wiki/Help:Installation](https://www.semantic-mediawiki.org/wiki/Help:Installation), [mediawiki.org/wiki/Compatibility](https://www.mediawiki.org/wiki/Compatibility)
+Sources : [docs.nextcloud.com](https://docs.nextcloud.com/server/latest/admin_manual/installation/php_configuration.html)
 
 ## 💡 Décision
 
-**Nous choisissons PHP 8.2** comme version PHP pour l'image VM smw-marketplace.
+**Nous choisissons PHP 8.2** comme version PHP pour l'image VM nextcloud-marketplace.
 
 ### Justification
 
 | Critère | PHP 8.1 | PHP 8.2 ✅ | PHP 8.3 | PHP 8.4 |
 |---------|---------|------------|---------|---------|
-| Compatibilité SMW 6.0.1 | ✅ | ✅ | ✅ | ✅ |
-| Compatibilité MediaWiki 1.43 | ✅ | ✅ | ✅ | ✅ |
+| Compatibilité Nextcloud 31 | ✅ | ✅ | ✅ | ✅ |
+
 | Support actif | ❌ EOL | ✅ Actif | ✅ Actif | ✅ Actif |
 | Maturité (éviter bugs early-adopter) | ✅ | ✅ | ⚠️ Moins testé | ⚠️ Très récent |
 | Disponible via ondrej/php PPA | ✅ | ✅ | ✅ | ✅ |
 | **Retenu** | | **✅** | | |
 
-PHP 8.2 offre le meilleur équilibre entre **support actif**, **maturité** et **compatibilité** avec l'ensemble du stack SMW.
+PHP 8.2 offre le meilleur équilibre entre **support actif**, **maturité** et **compatibilité** avec l'ensemble du stack Nextcloud.
 
 ### Configuration retenue
 
@@ -88,8 +87,8 @@ apt-get install -y php8.2 php8.2-fpm php8.2-mysql php8.2-xml \
   php8.2-mbstring php8.2-intl php8.2-curl php8.2-zip php8.2-gd
 ```
 
-Extensions PHP requises par MediaWiki/SMW :
-- `php8.2-mysql` — connexion MySQL (SQLStore SMW)
+Extensions PHP requises par Nextcloud :
+- `php8.2-mysql` — connexion MariaDB
 - `php8.2-xml` — parsing XML
 - `php8.2-mbstring` — support multibyte (unicode)
 - `php8.2-intl` — internationalisation
@@ -101,9 +100,9 @@ Extensions PHP requises par MediaWiki/SMW :
 
 ### ✅ Positives
 
-- Compatibilité garantie avec SMW 6.0.1 et MediaWiki 1.43.x
+- Compatibilité garantie avec Nextcloud Hub 31.x
 - Support de sécurité actif jusqu'en décembre 2026 (horizon suffisant pour MVP)
-- Version stable et bien testée par la communauté MediaWiki
+- Version stable et bien testée par la communauté Nextcloud
 - Packages disponibles sur Ubuntu 22.04 via PPA `ondrej/php`
 
 ### ⚠️ Négatives / Risques
@@ -116,7 +115,7 @@ Extensions PHP requises par MediaWiki/SMW :
 ## 🔄 Critères de Re-évaluation
 
 **Déclencher une review si** :
-- ⚠️ Nouvelle version majeure SMW nécessitant PHP 8.3+
+- ⚠️ Nouvelle version majeure Nextcloud nécessitant PHP 8.3+
 - ⚠️ EOL PHP 8.2 approchant (< 6 mois)
 - ⚠️ Vulnérabilité critique PHP 8.2 sans patch
 
@@ -125,8 +124,8 @@ Extensions PHP requises par MediaWiki/SMW :
 
 ## 🔗 Références
 
-- [Semantic MediaWiki — Installation Requirements](https://www.semantic-mediawiki.org/wiki/Help:Installation)
-- [MediaWiki — Compatibility](https://www.mediawiki.org/wiki/Compatibility)
+- [Nextcloud — PHP requirements](https://docs.nextcloud.com/server/latest/admin_manual/installation/source_installation.html)
+- [Nextcloud — Compatibility](https://docs.nextcloud.com/server/latest/admin_manual/)
 - [PHP Supported Versions](https://www.php.net/supported-versions.php)
 - [ondrej/php PPA](https://launchpad.net/~ondrej/+archive/ubuntu/php)
 
@@ -134,4 +133,4 @@ Extensions PHP requises par MediaWiki/SMW :
 
 | Date | Auteur | Changement | Raison |
 |------|--------|------------|--------|
-| 2026-04-04 | @devops-team | Création ADR-609 | Choix version PHP pour image VM SMW Marketplace |
+| 2026-04-04 | @devops-team | Création ADR-609 | Choix version PHP pour image VM Nextcloud Marketplace |

@@ -35,12 +35,12 @@ superseded_by: null
 
 ## 🎯 Contexte
 
-Le projet smw-marketplace nécessite une stratégie Git claire pour :
+Le projet nextcloud-marketplace nécessite une stratégie Git claire pour :
 - **Gérer les contributions** en parallèle (provisioning, VM image, docs, tests)
 - **Séparer clairement** les phases de développement et les releases stables
 - **Tracer les versions** des images VM publiées sur Azure Marketplace
 - **Permettre des rollbacks** rapides en cas de régression image VM
-- **Coordonner** les différents domaines du projet : infrastructure Packer, scripts SMW, documentation ADR, tests Marketplace
+- **Coordonner** les différents domaines du projet : infrastructure Packer, scripts Nextcloud, documentation ADR, tests Marketplace
 
 ## Décision
 
@@ -63,7 +63,7 @@ hotfix/correction (urgences uniquement)
   - Minimum 1 review requis
   - Status checks CI doivent passer
   - Direct pushes interdits
-- **Tags** : Versions stables des releases VM (ex: `v1.0.0-smw-initial`)
+- **Tags** : Versions stables des releases VM (ex: `v1.0.0-nextcloud-initial`)
 
 #### **Branches personnelles `utilisateur/feature-name`**
 
@@ -71,14 +71,14 @@ hotfix/correction (urgences uniquement)
 
 ```bash
 # ✅ Formats corrects
-michel-heon/packer-smw-base-image
+michel-heon/packer-nextcloud-base-image
 michel-heon/tls-configuration
-jane-doe/smw-extensions-support
+jane-doe/nextcloud-feature-support
 john-smith/marketplace-certification
 
 # ❌ Formats à éviter
 feature/packer-image       # Pas de préfixe utilisateur
-SMW-16-extension        # Format ticket dans branche
+NC-16-feature        # Format ticket dans branche
 ```
 
 **Avantages** :
@@ -101,7 +101,7 @@ v{MAJOR}.{MINOR}.{PATCH}-{description-kebab-case}
 - **MAJOR** : Changements incompatibles ou refonte majeure
   - Exemples : Changement OS base image, migration PHP, changement stack
 - **MINOR** : Nouvelles fonctionnalités compatibles
-  - Exemples : Ajout monitoring, nouvelle configuration TLS, support nouvelle extension SMW
+  - Exemples : Ajout monitoring, nouvelle configuration TLS, support nouvelle app Nextcloud
 - **PATCH** : Corrections de bugs
   - Exemples : Hotfix script provisioning, correction timeout Apache
 
@@ -109,9 +109,9 @@ v{MAJOR}.{MINOR}.{PATCH}-{description-kebab-case}
 
 | Phase | Format | Exemple | Usage |
 |-------|--------|---------|-------|
-| Développement actif | `-alpha.{n}-{mot-clé}` | `v1.1.0-alpha.1-smw-install` | Branche personnelle |
-| Tests internes | `-beta.{n}-{mot-clé}` | `v1.1.0-beta.1-smw-install` | Branche personnelle, feature complète |
-| Release candidate | `-rc{n}-{mot-clé}` | `v1.1.0-rc1-smw-install` | Avant merge main |
+| Développement actif | `-alpha.{n}-{mot-clé}` | `v1.1.0-alpha.1-nextcloud-install` | Branche personnelle |
+| Tests internes | `-beta.{n}-{mot-clé}` | `v1.1.0-beta.1-nextcloud-install` | Branche personnelle, feature complète |
+| Release candidate | `-rc{n}-{mot-clé}` | `v1.1.0-rc1-nextcloud-install` | Avant merge main |
 | Production (main) | `-{description}` | `v1.1.0-vivo-tls-support` | Tag sur main après merge |
 
 #### **Règle stricte : Description OBLIGATOIRE pour tous les tags**
@@ -120,11 +120,11 @@ v{MAJOR}.{MINOR}.{PATCH}-{description-kebab-case}
 ```bash
 # Branches personnelles
 v1.0.0-alpha.1-packer-base-image
-v1.1.0-beta.2-smw-semantic
+v1.1.0-beta.2-nextcloud-feature
 v1.2.0-rc1-tls-configuration
 
 # Branche main (production)
-v1.0.0-initial-smw-vm
+v1.0.0-initial-nextcloud-vm
 v1.1.0-tls-hardening
 v2.0.0-ubuntu-24-migration
 ```
@@ -136,16 +136,16 @@ v1.1.0-alpha.1       # Manque mot-clé descriptif
 v2.0.0-test          # Trop générique
 ```
 
-#### **Exemples conformes pour smw-marketplace**
+#### **Exemples conformes pour nextcloud-marketplace**
 
 *Branches personnelles* :
 - `v1.0.0-alpha.1-packer-base-image` — Build Packer initial
-- `v1.0.0-alpha.2-smw-install` — Installation MediaWiki/SMW scripts
+- `v1.0.0-alpha.2-nextcloud-install` — Installation Nextcloud scripts
 - `v1.0.0-beta.1-tls-configure` — Configuration TLS
-- `v1.1.0-alpha.1-smw-extension` — Support extensions SMW
+- `v1.1.0-alpha.1-nextcloud-app` — Support apps Nextcloud
 
 *Branche main (releases)* :
-- `v1.0.0-initial-smw-vm` — Première image VM SMW complète
+- `v1.0.0-initial-nextcloud-vm` — Première image VM Nextcloud complète
 - `v1.1.0-tls-hardening` — Amélioration sécurité TLS
 - `v1.2.0-monitoring-azure` — Ajout Azure Monitor
 - `v2.0.0-ubuntu-24-migration` — Migration Ubuntu 24.04
@@ -154,8 +154,8 @@ v2.0.0-test          # Trop générique
 
 | Type de changement | Format recommandé | Exemples |
 |---------------------|-------------------|----------|
-| Version initiale | `initial-{composant}` | `v1.0.0-initial-smw-vm` |
-| Composant SMW | `vivo-{fonctionnalité}` | `v1.1.0-smw-sparql-endpoint` |
+| Version initiale | `initial-{composant}` | `v1.0.0-initial-nextcloud-vm` |
+| Composant Nextcloud | `vivo-{fonctionnalité}` | `v1.1.0-nextcloud-talk-feature` |
 | Sécurité | `{composant}-hardening`, `tls-{action}` | `v1.2.0-tls-hardening` |
 | Infrastructure | `{cloud}-{action}` | `v1.3.0-azure-monitor` |
 | Correction | `{composant}-{problème}-fix` | `v1.1.1-apache-timeout-fix` |
@@ -170,39 +170,39 @@ v2.0.0-test          # Trop générique
 # 1. Créer branche personnelle depuis main à jour
 git checkout main
 git pull origin main
-git checkout -b michel-heon/packer-smw-base-image
+git checkout -b michel-heon/packer-nextcloud-base-image
 
 # 2. Développement avec tags alpha descriptifs
 git commit -m "feat(packer): ajout template Packer Ubuntu 22.04"
-git tag -a v1.0.0-alpha.1-packer-base-image -m "Alpha: template Packer initial Ubuntu 22.04 + SMW"
-git push origin michel-heon/packer-smw-base-image --tags
+git tag -a v1.0.0-alpha.1-packer-base-image -m "Alpha: template Packer initial Ubuntu 22.04 + Nextcloud"
+git push origin michel-heon/packer-nextcloud-base-image --tags
 
 # 3. Itérations
-git commit -m "feat(packer): ajout provisioner installation Apache + MediaWiki"
-git tag -a v1.0.0-alpha.2-packer-base-image -m "Alpha: provisioners Apache + MediaWiki ajoutés"
+git commit -m "feat(packer): ajout provisioner installation Nginx + Nextcloud"
+git tag -a v1.0.0-alpha.2-packer-base-image -m "Alpha: provisioners Nginx + Nextcloud ajoutés"
 git push --tags
 
 # 4. Tests internes → tag beta
-git tag -a v1.0.0-beta.1-packer-base-image -m "Beta: image buildée et MediaWiki accessible"
+git tag -a v1.0.0-beta.1-packer-base-image -m "Beta: image buildée et Nextcloud accessible"
 git push --tags
 
 # 5. Pull Request vers main
-gh pr create --base main --head michel-heon/packer-smw-base-image \
-  --title "feat(vm): Image VM SMW base (Packer + Ubuntu 22.04)" \
-  --body "Première image VM SMW complète:
+gh pr create --base main --head michel-heon/packer-nextcloud-base-image \
+  --title "feat(vm): Image VM Nextcloud base (Packer + Ubuntu 22.04)" \
+  --body "Première image VM Nextcloud complète:
   - Template Packer Ubuntu 22.04 LTS
-  - Installation SMW 6.0.1 / Citro + MySQL
+  - Installation Nextcloud Hub 31 + MariaDB
   - Installation Apache 2.4 + PHP-FPM
   - Configuration MySQL
   - Hardening sécurité de base"
 
 # 6. Après merge, tag de release sur main
 git checkout main && git pull origin main
-git tag -a v1.0.0-initial-smw-vm -m "Release v1.0.0: Première image VM SMW complète
+git tag -a v1.0.0-initial-nextcloud-vm -m "Release v1.0.0: Première image VM Nextcloud complète
 
-- SMW 6.0.1 + MediaWiki/SMW sur Ubuntu 22.04 LTS
+- Nextcloud Hub 31 sur Ubuntu 22.04 LTS
 - Apache 2.4 + PHP 8.2
-- MySQL + SMW
+- MariaDB + Redis
 - Hardening sécurité de base
 
 Prêt pour certification Azure Marketplace."
@@ -263,12 +263,12 @@ delete_branch_on_merge: true
 - `ci` : Configuration CI/CD GitHub Actions
 - `build` : Build Packer, Makefile
 
-#### **Scopes smw-marketplace**
+#### **Scopes nextcloud-marketplace**
 - `packer` : Template Packer, builds image VM
-- `vivo` : Installation/configuration MediaWiki/SMW
+- `vivo` : Installation/configuration Nextcloud
 - `apache` : Apache server
-- `mysql` : smw-mysql
-- `smw` : Extensions SMW et MediaWiki
+- `mariadb` : nc-mariadb
+- `nextcloud` : Apps Nextcloud
 - `tls` : Certificats TLS, HTTPS
 - `security` : Hardening, NSG, firewall
 - `azure` : Infrastructure Azure, RG, images
@@ -279,7 +279,7 @@ delete_branch_on_merge: true
 #### **Exemples conformes**
 
 ```bash
-git commit -m "feat(packer): template SMW Ubuntu 22.04 LTS initial"
+git commit -m "feat(packer): template Nextcloud Ubuntu 22.04 LTS initial"
 
 git commit -m "feat(tls): configuration TLS automatique avec Let's Encrypt ou cert auto-signé"
 
@@ -288,9 +288,9 @@ git commit -m "fix(apache): correction timeout connexion MySQL
 - Augmentation timeout 30s → 60s
 - Ajout retry logic exponential backoff pour SPARQL endpoint"
 
-git commit -m "docs(adr): ADR-603 workflow Git et versioning smw-marketplace"
+git commit -m "docs(adr): ADR-603 workflow Git et versioning nextcloud-marketplace"
 
-git commit -m "chore(packer): mise à jour SMW 6.0.1 → 1.13.2"
+git commit -m "chore(packer): mise à jour Nextcloud version"
 
 git commit -m "ci: ajout workflow GitHub Actions packer validate sur PR"
 
@@ -306,7 +306,7 @@ Les versions des images VM publiées sur Azure Marketplace suivent un format dis
 ```
 
 **Correspondance** :
-- Tag Git `v1.0.0-initial-smw-vm` → Image Marketplace version `1.0.0`
+- Tag Git `v1.0.0-initial-nextcloud-vm` → Image Marketplace version `1.0.0`
 - Tag Git `v1.1.0-tls-hardening` → Image Marketplace version `1.1.0`
 - Tag Git `v1.0.1-apache-timeout-fix` → Image Marketplace version `1.0.1`
 
@@ -400,7 +400,7 @@ git tag v0.9.1-truc     # Numéro découplé de IMAGE_VERSION
 
 | Date | Auteur | Changement | Raison |
 |------|--------|------------|--------|
-| 2026-02-21 | @dev-team | Création ADR-603 | Adaptation depuis og-nore/ADR-609 pour smw-marketplace |
+| 2026-02-21 | @dev-team | Création ADR-603 | Adaptation depuis og-nore/ADR-609 pour nextcloud-marketplace |
 | 2026-03-04 | @michel-heon | Ajout section 7 : alignement tag Git = IMAGE_VERSION | Simplification traçabilité image Packer ↔ tag Git |
 
 **Note** : Le versioning Marketplace (numérique pur) est automatiquement dérivé du tag Git par le pipeline CI/CD. Ne pas maintenir deux systèmes de version séparément.

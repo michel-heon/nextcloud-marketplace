@@ -11,7 +11,7 @@ classification:
   reversibility: "easy"
   scope: "tactical"
   tech_areas: ["bash", "makefile", "automation", "devops", "naming", "packer"]
-tags: ["devops", "scripting", "bash", "makefile", "naming", "packer", "smw-marketplace"]
+tags: ["devops", "scripting", "bash", "makefile", "naming", "packer", "nextcloud-marketplace"]
 stakeholders: ["@devops-team", "@dev-team"]
 effort: "low"
 related_issues: []
@@ -35,15 +35,15 @@ superseded_by: null
 
 ## 🎯 Contexte
 
-Le projet smw-marketplace comprend des scripts d'automatisation pour :
-- **Construction image VM** : Scripts Packer, provisioning MediaWiki/Apache/MySQL
+Le projet nextcloud-marketplace comprend des scripts d'automatisation pour :
+- **Construction image VM** : Scripts Packer, provisioning Nextcloud/Nginx/MariaDB
 - **Tests et validation** : Smoke tests VM, vérification TLS, test Marketplace
 - **Infrastructure Azure** : Déploiement ressources, gestion Resource Groups
-- **Configuration MediaWiki : installation SMW extensions, setup Apache, configuration MySQL
+- **Configuration Nextcloud : configuration Nextcloud, setup Nginx, configuration MariaDB
 
 Sans convention de nommage claire :
 - **Difficulté de découverte** : Les développeurs ne trouvent pas le script voulu
-- **Inconsistance** : Styles mélangés (`deploy.sh`, `mediawiki-install.sh`, `apache_install.sh`)
+- **Inconsistance** : Styles mélangés (`deploy.sh`, `nextcloud-install.sh`, `apache_install.sh`)
 - **Maintenance complexe** : Difficile de comprendre rapidement la fonction d'un script
 
 ## Décision
@@ -65,7 +65,7 @@ Adopter une nomenclature standardisée pour **tous les scripts d'automatisation*
 2. **Conventions**
    - **Tout en minuscules** (lowercase)
    - **Mots séparés par des tirets**
-   - **Objet au singulier** : `vm`, `mediawiki`, `apache`, `mysql`, `smw`, `tls`
+   - **Objet au singulier** : `vm`, `nextcloud`, `nginx`, `mariadb`, `redis`, `tls`
    - **Action en verbe** : `install`, `configure`, `start`, `stop`, `test`, `validate`, `build`
 
 3. **Exemples valides**
@@ -77,17 +77,17 @@ Adopter une nomenclature standardisée pour **tous les scripts d'automatisation*
    vm-smoke-test.sh            # Tests smoke post-déploiement
    ```
 
-   **Scripts composants SMW** :
+   **Scripts composants Nextcloud** :
    ```
-   mediawiki-install.sh             # Installation MediaWiki
-   mediawiki-configure.sh           # Configuration post-installation
-   mediawiki-start.sh               # Démarrage services MediaWiki
-   apache-install.sh             # Installation et configuration Apache
+   nextcloud-install.sh             # Installation Nextcloud
+   nextcloud-configure.sh           # Configuration post-installation
+   nextcloud-start.sh               # Démarrage services Nextcloud
+   nginx-install.sh             # Installation et configuration Apache
    apache-configure.sh           # Configuration Apache (apache2.conf, etc.))
-   mysql-install.sh              # Installation MySQL
+   mariadb-install.sh              # Installation MySQL
    mysql-configure.sh            # Configuration MySQL (bases, schémas)
-   smw-install.sh                # Installation SMW extensions
-   smw-configure.sh              # Configuration SMW
+   nextcloud-install.sh                # Installation Nextcloud apps
+   nextcloud-configure.sh              # Configuration Nextcloud
    ```
 
    **Scripts sécurité** :
@@ -114,18 +114,18 @@ Adopter une nomenclature standardisée pour **tous les scripts d'automatisation*
    azure-vm-destroy.sh         # Nettoyage VM test
    ```
 
-4. **Convention spéciale: Composants SMW individuels**
+4. **Convention spéciale: Composants Nextcloud individuels**
 
-   Pour scripts qui gèrent des composants individuels de la stack SMW :
+   Pour scripts qui gèrent des composants individuels de la stack Nextcloud :
 
    **Format** : `{composant}-{action}.sh`
 
    ```bash
    # Composant-action cohérent
-   mediawiki-install.sh              # MediaWiki core
-   mysql-install.sh               # MySQL spécifiquement
-   smw-reindex.sh                  # Réindexation SMW
-   smw-extensions-install.sh       # Extensions SMW additionnelles
+   nextcloud-install.sh              # Nextcloud core
+   mariadb-install.sh               # MySQL spécifiquement
+   nextcloud-reindex.sh                  # Réindexation Nextcloud
+   nextcloud-extensions-install.sh       # Apps Nextcloud additionnelles
    jena-fuseki-install.sh       # Serveur Fuseki SPARQL
    ```
 
@@ -140,8 +140,8 @@ Adopter une nomenclature standardisée pour **tous les scripts d'automatisation*
    help, setup, clean, test, build, deploy
 
    # Targets composants (object-action)
-   mediawiki-install           # Installe MediaWiki
-   mediawiki-configure         # Configure MediaWiki
+   nextcloud-install           # Installe Nextcloud
+   nextcloud-configure         # Configure Nextcloud
    apache-install             # Installe Apache
    mysql-install               # Installe MySQL
    tls-configure          # Configure TLS
@@ -161,14 +161,14 @@ Adopter une nomenclature standardisée pour **tous les scripts d'automatisation*
    ├── vm-validate.sh                     # Validation post-build
    ├── vm-smoke-test.sh                   # Smoke tests
    │
-   ├── # SMW Stack
-   ├── mediawiki-install.sh             # Installation MediaWiki Backend/MediaWiki
-   ├── mediawiki-configure.sh                  # Configuration MediaWiki
-   ├── mysql-install.sh                            # MySQL
-   ├── apache-install.sh                           # Apache
+   ├── # Nextcloud Stack
+   ├── nextcloud-install.sh             # Installation Nextcloud
+   ├── nextcloud-configure.sh                  # Configuration Nextcloud
+   ├── mariadb-install.sh                            # MySQL
+   ├── nginx-install.sh                           # Apache
    ├── apache-configure.sh                         # Configuration Apache
-   ├── smw-install.sh                              # SMW extensions
-   ├── smw-configure.sh                            # Configuration SMW
+   ├── nextcloud-install.sh                              # Nextcloud apps
+   ├── nextcloud-configure.sh                            # Configuration Nextcloud
    │
    ├── # Sécurité
    ├── tls-configure.sh                   # TLS/HTTPS
@@ -187,7 +187,7 @@ Adopter une nomenclature standardisée pour **tous les scripts d'automatisation*
 
 **Avant (❌ non-standard) :**
 ```bash
-scripts/mediawiki-install.sh           # camelCase
+scripts/nextcloud-install.sh           # camelCase
 scripts/install_apache.sh      # underscore
 scripts/DeployVM.sh            # Majuscule
 scripts/setup.sh               # Nom générique
@@ -197,7 +197,7 @@ scripts/azure-deploy-vm.sh     # Action avant objet
 **Après (✅ standard ADR-601) :**
 ```bash
 scripts/server-install.sh        # object-action, lowercase
-scripts/apache-install.sh      # tirets
+scripts/nginx-install.sh      # tirets
 scripts/vm-deploy.sh           # lowercase
 scripts/vm-provision.sh        # descriptif
 scripts/azure-vm-deploy.sh     # azure-{service}-{action}
@@ -208,9 +208,9 @@ scripts/azure-vm-deploy.sh     # azure-{service}-{action}
 ### Positives ✅
 
 - **Prévisibilité** : Le nom révèle immédiatement le composant et l'action
-- **Découvrabilité** : `ls scripts/mediawiki-*` liste tous les scripts MediaWiki
+- **Découvrabilité** : `ls scripts/nextcloud-*` liste tous les scripts Nextcloud
 - **Cohérence** : Pattern uniforme Bash + Makefile
-- **Auto-complétion** : `mediawiki-<TAB>` liste les scripts MediaWiki
+- **Auto-complétion** : `nextcloud-<TAB>` liste les scripts Nextcloud
 - **Compatibilité Packer** : Noms utilisés comme `scripts/` dans provisioners Packer
 
 ### Négatives ⚠️
@@ -220,7 +220,7 @@ scripts/azure-vm-deploy.sh     # azure-{service}-{action}
 
 ## Alternatives Considérées
 
-### Action-Object (`install-mediawiki.sh`)
+### Action-Object (`install-nextcloud.sh`)
 **Rejetée** : Moins intuitif pour regrouper par composant. `ls scripts/server-*` plus utile que `ls scripts/install-*`.
 
 ### CamelCase (`installVivo.sh`)
@@ -245,4 +245,4 @@ scripts/azure-vm-deploy.sh     # azure-{service}-{action}
 
 | Date | Auteur | Changement | Raison |
 |------|--------|------------|--------|
-| 2026-02-21 | @dev-team | Création ADR-601 | Adaptation depuis og-nore/ADR-601 pour smw-marketplace |
+| 2026-02-21 | @dev-team | Création ADR-601 | Adaptation depuis og-nore/ADR-601 pour nextcloud-marketplace |

@@ -25,7 +25,7 @@ classification:
     - "packer"
     - "azure"
 
-tags: ["configuration", "environment", "secrets", "config", "devops", "mediawiki"]
+tags: ["configuration", "environment", "secrets", "config", "devops", "nextcloud"]
 stakeholders: ["@dev-team", "@devops-team"]
 effort: "low"
 ---
@@ -77,11 +77,11 @@ nano env/generated/config.make # INTERDIT - Sera écrasé
 
 ## Contexte
 
-Le projet smw-marketplace nécessite une gestion sécurisée de la configuration pour :
+Le projet nextcloud-marketplace nécessite une gestion sécurisée de la configuration pour :
 
 - **Scripts de build Packer** : IDs Azure, credentials pour construction image VM
 - **Scripts de déploiement** : Subscription Azure, Resource Group, région
-- **Configuration MediaWiki : URLs Apache, MySQL, extensions SMW
+- **Configuration Nextcloud : URLs Nginx, MariaDB, Redis
 - **Secrets Azure Marketplace** : App Registration, SAS tokens, Publisher ID
 
 ### Problèmes identifiés
@@ -107,7 +107,7 @@ Adopter un système de configuration en **deux couches** avec génération via `
 ```
 env/
 ├── .env.dev                    # Variables PUBLIQUES versionnées
-│                               # (versions SMW, région Azure, noms ressources)
+│                               # (versions NC, région Azure, noms ressources)
 ├── .env.dev.user              # Secrets PRIVÉS (NON versionnés)
 │                               # (Azure credentials, SAS tokens, Publisher ID)
 ├── .env.dev.user.example      # Template pour secrets (versionné)
@@ -117,25 +117,25 @@ env/
     └── config.make            # Format Make (VAR := val)
 ```
 
-### Variables types pour smw-marketplace
+### Variables types pour nextcloud-marketplace
 
 **`env/.env.dev` (publiques, versionnées)** :
 ```bash
 # Azure
 AZURE_LOCATION="canadacentral"
-AZURE_RESOURCE_GROUP="rg-smw-marketplace-build"
-VM_IMAGE_NAME="smw-marketplace-vm"
+AZURE_RESOURCE_GROUP="rg-nextcloud-marketplace-build"
+VM_IMAGE_NAME="nextcloud-marketplace-vm"
 VM_SIZE="Standard_D4s_v3"
 
-# SMW Stack
-SMW_VERSION="6.0.1"
+# Nextcloud Stack
+NC_VERSION="6.0.1"
 MEDIAWIKI_VERSION="1.43.0"
 PHP_VERSION="8.2"
 MYSQL_VERSION="8.0"
 JAVA_VERSION="21"
 
 # Extensions
-#SMW_EXTENSIONS="SemanticMediaWiki,PluggableAuth,SimpleSAMLphp"
+#NC_APPS="user_saml,richdocuments,spreed,groupware"
 
 WIKI_PORT="443"
 ```
@@ -230,7 +230,7 @@ include env/generated/config.make
 
 **Avantages** : ✅ Gestion secrets enterprise, rotation automatique  
 **Inconvénients** : ❌ Requiert authentification Azure pour développement local, overhead setup  
-**Rejeté** : Trop lourd pour phase développement/build locale. Utiliser pour MediaWiki en production.
+**Rejeté** : Trop lourd pour phase développement/build locale. Utiliser pour Nextcloud en production.
 
 ### Alternative 2 : Variables d'environnement système
 
@@ -268,7 +268,7 @@ include env/generated/config.make
 ```
 packer/
 ├── env/
-│   ├── azure.env                   # Variables publiques SMW/Azure (SOURCE DE VÉRITÉ)
+│   ├── azure.env                   # Variables publiques Nextcloud/Azure (SOURCE DE VÉRITÉ)
 │   ├── azure.env.user              # Secrets (NON versionné)
 │   ├── azure.env.user.example      # Template secrets (versionné)
 │   └── generated/                  # Fichiers générés (NON versionnés)
@@ -285,7 +285,7 @@ packer/
 
 | Date | Auteur | Changement | Raison |
 |------|--------|------------|--------|
-| 2026-02-21 | @dev-team | Création ADR-600 | Adaptation depuis og-nore/ADR-600 pour smw-marketplace |
+| 2026-02-21 | @dev-team | Création ADR-600 | Adaptation depuis og-nore/ADR-600 pour nextcloud-marketplace |
 | 2026-04-13 | @dev-team | Renommage `bootstrap` → `config` | Meilleure clarté (pattern `./configure`), dépendance automatique |
 
 **Évolutions futures possibles** :
