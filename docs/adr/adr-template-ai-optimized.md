@@ -46,11 +46,11 @@ classification:
   tech_areas:
     - "azure"
     - "vm"
-    # Autres: mediawiki, semantic-mediawiki, php, mysql, apache, php-fpm, composer,
+    # Autres: nextcloud, mariadb, nginx, php-fpm, redis, composer,
     #         packer, bicep, tls, nsg, bash
 
 # Tags libres pour recherche flexible
-tags: ["azure-marketplace", "vm", "mediawiki"]
+tags: ["azure-marketplace", "vm", "nextcloud"]
 
 # Stakeholders impliqués
 stakeholders: ["@architecture-team", "@dev-team"]
@@ -87,14 +87,14 @@ effort: "medium"  # low|medium|high
 ### Questions Guidées
 
 **1. Quel problème essayons-nous de résoudre?**
-- [Décrire le problème principal dans le contexte smw-marketplace]
-- [Impact actuel du problème sur le déploiement MediaWiki/SMW ou la certification Marketplace]
+- [Décrire le problème principal dans le contexte nextcloud-marketplace]
+- [Impact actuel du problème sur le déploiement Nextcloud Hub ou la certification Marketplace]
 
 **2. Quelles sont les contraintes et exigences?**
-- **Techniques**: [Ex: Compatibilité SMW, version PHP, MySQL, TLS]
+- **Techniques**: [Ex: Compatibilité Nextcloud, version PHP, MariaDB, TLS]
 - **Azure Marketplace**: [Ex: Exigences Microsoft certification VM, sécurité]
 - **Client final**: [Ex: Organisations gérant une base de connaissances sémantique]
-- **Open Source**: [Ex: Compatibilité licence GPL-2.0, dépendances]
+- **Open Source**: [Ex: Compatibilité licence AGPL-3.0, dépendances]
 
 **3. Quel est l'impact si nous ne prenons pas de décision?**
 - **Court terme (0-3 mois)**: [Impact sur le développement / certification]
@@ -103,7 +103,7 @@ effort: "medium"  # low|medium|high
 
 **4. Quels facteurs influencent cette décision?**
 - **Exigences Microsoft Marketplace**: [Politiques de certification VM]
-- **Stack SMW**: [Contraintes MediaWiki, SMW, PHP, MySQL, Apache]
+- **Stack Nextcloud**: [Contraintes Nextcloud Hub, PHP, MariaDB, Nginx]
 - **Sécurité**: [TLS, NSG, hardening VM]
 - **Reproductibilité**: [Automatisation provisioning, Packer, scripts]
 
@@ -135,7 +135,7 @@ effort: "medium"  # low|medium|high
 - ✅ **Reproductibilité**: [Image VM construite de façon automatisée et idempotente]
 - ✅ **Sécurité by design**: [TLS, hardening, principe moindre privilège]
 - ✅ **Azure Well-Architected Framework**: [Piliers respectés: reliability, security]
-- ✅ **Open Source Compliance**: [Compatibilité licence GPL-2.0 MediaWiki/SMW]
+- ✅ **Open Source Compliance**: [Compatibilité licence AGPL-3.0 Nextcloud]
 - ✅ **[Autre principe]**: [Description]
 
 ### Technologies/Outils Utilisées
@@ -144,8 +144,8 @@ effort: "medium"  # low|medium|high
 |-------------|---------|------|---------------|
 | Azure Marketplace | - | Plateforme distribution | Standard Microsoft |
 | Packer | ≥ 1.10 | Construction image VM | Automatisation IaC |
-| Apache + PHP-FPM | Latest stable | Serveur web MediaWiki | Requis par MediaWiki |
-| MySQL | 5.7+ / 8.x | Base de données SMW | Composant SMW SQLStore |
+| Nginx + PHP-FPM | Latest stable | Serveur web Nextcloud | Requis par Nextcloud |
+| MariaDB | 10.6+ | Base de données Nextcloud | Stockage données Nextcloud |
 | [Autre] | [Version] | [Rôle] | [Justification] |
 
 ---
@@ -191,7 +191,7 @@ Décision:      (10*0.30) + (9*0.25) + (8*0.20) + (9*0.15) + (7*0.10) = 9.05 ✅
 |--------|--------|-------------|------------|-------------|----------|
 | Changements exigences Marketplace | 🟡 Moyen | 🟡 Moyen | Veille Microsoft Marketplace | @devops-team | Trim. |
 | Complexité provisioning | 🟡 Moyen | 🟢 Faible | Scripts bien documentés | @dev-team | Phase 1 |
-| **Dépendances SMW upstream** | 🟡 Moyen | 🟡 Moyen | Version pinning, tests régression | @dev-team | Continu |
+| **Dépendances Nextcloud upstream** | 🟡 Moyen | 🟡 Moyen | Version pinning, tests régression | @dev-team | Continu |
 
 ---
 
@@ -242,7 +242,7 @@ Décision:      (10*0.30) + (9*0.25) + (8*0.20) + (9*0.15) + (7*0.10) = 9.05 ✅
 | Phase | Durée Estimée | Deliverables | Blockers Potentiels | Critères de Validation | Responsable |
 |-------|---------------|--------------|---------------------|------------------------|-------------|
 | **Phase 1: Fondations** | 2 semaines | - Configuration initiale<br>- Scripts de base<br>- Tests unitaires | - Accès Azure<br>- Approbation architecture | - CI vert<br>- Code review approuvé | @dev-team |
-| **Phase 2: Intégration MediaWiki** | 2 semaines | - Installation MediaWiki + SMW complète<br>- Configuration MySQL<br>- TLS actif | - Image OS de base validée | - MediaWiki accessible<br>- SMW activé OK | @dev-team |
+| **Phase 2: Intégration Nextcloud** | 2 semaines | - Installation Nextcloud Hub complète<br>- Configuration MariaDB<br>- TLS actif | - Image OS de base validée | - Nextcloud accessible<br>- Apps installées OK | @dev-team |
 | **Phase 3: Certification** | 1 semaine | - Image VM finalisée<br>- Tests Marketplace<br>- Documentation | - Toutes phases précédentes OK | - Validation Microsoft<br>- Smoke tests | @devops-team |
 | **Phase 4: Publication** | 3 jours | - Publication Marketplace<br>- Docs client finales | - Certification approuvée | - Offre visible Marketplace | @architecture-team |
 
@@ -252,7 +252,7 @@ Décision:      (10*0.30) + (9*0.25) + (8*0.20) + (9*0.15) + (7*0.10) = 9.05 ✅
 graph TD
     A[ADR-000: Processus ADR] -->|Fondation| B[ADR-200: VM Image Build]
     B -->|Pré-requis| C[Phase 1: Fondations]
-    C -->|Bloque| D[Phase 2: Intégration MediaWiki/SMW]
+    C -->|Bloque| D[Phase 2: Intégration Nextcloud Hub]
     D -->|Bloque| E[Phase 3: Certification Marketplace]
     E -->|Bloque| F[Phase 4: Publication]
 ```
@@ -274,7 +274,7 @@ graph TD
 
 **Déclencher une review complète si**:
 - ⚠️ Changement majeur exigences Microsoft Marketplace
-- ⚠️ Nouvelle version majeure MediaWiki / SMW disponible
+- ⚠️ Nouvelle version majeure Nextcloud disponible
 - ⚠️ Faille de sécurité critique dans un composant
 - ⚠️ Migration OS base (Ubuntu LTS, RHEL)
 
@@ -300,8 +300,8 @@ graph TD
 ### Documentation Externe
 
 - [Azure Marketplace VM Offer](https://learn.microsoft.com/en-us/azure/marketplace/azure-vm-offer-setup)
-- [Semantic MediaWiki](https://www.semantic-mediawiki.org/)
-- [MediaWiki Documentation](https://www.mediawiki.org/wiki/MediaWiki)
+- [Nextcloud Documentation](https://docs.nextcloud.com/)
+- [Nextcloud GitHub](https://github.com/nextcloud/server)
 - [Azure Well-Architected Framework](https://learn.microsoft.com/en-us/azure/well-architected/)
 
 ---
@@ -321,7 +321,7 @@ graph TD
 ```json
 {
   "adr_id": "XXX",
-  "project": "smw-marketplace",
+  "project": "nextcloud-marketplace",
   "parsing_version": "2.0",
   "generated_at": "YYYY-MM-DDTHH:mm:ssZ",
   "validation_status": "valid",
@@ -351,14 +351,14 @@ graph TD
 8. **Committer** : `git commit -m "docs(adr): ADR-XXX [CATÉGORIE] Titre"`
 9. **Ajouter à l'index** : Mettre à jour `docs/adr/README.md`
 
-**Exemples noms fichiers (contexte smw-marketplace)** :
+**Exemples noms fichiers (contexte nextcloud-marketplace)** :
 ```bash
 000-META-processus-creation-adr.md              # Méta (000-099)
-100-ARCH-architecture-smw-vm-offer.md           # Architecture (100-199)
+100-ARCH-architecture-nextcloud-vm-offer.md           # Architecture (100-199)
 200-INFRA-azure-vm-image-packer.md              # Infrastructure (200-299)
 300-SEC-tls-network-security-groups.md          # Sécurité (300-399)
-400-DATA-mysql-semantic-schema.md               # Données (400-499)
-500-API-mediawiki-api-integration.md            # API (500-599)
+400-DATA-mariadb-nextcloud-schema.md               # Données (400-499)
+500-API-nextcloud-api-integration.md            # API (500-599)
 600-DEVOPS-packer-ci-pipeline.md                # DevOps (600-699)
 700-TEST-marketplace-certification.md           # Tests (700-799)
 800-BIZ-azure-marketplace-offer-model.md        # Business (800-899)
@@ -383,11 +383,11 @@ graph TD
 - [ ] Stratégies mitigation pour risques élevés
 - [ ] Dépendances ADRs/Issues explicites
 - [ ] Références documentation Azure Marketplace
-- [ ] Conformité open source (GPL-2.0 MediaWiki/SMW) vérifiée
+- [ ] Conformité open source (AGPL-3.0 Nextcloud) vérifiée
 
 ---
 
 **Version Template**: 2.0 (AI-Optimized)  
 **Dernière Mise à Jour**: 2026-02-21  
-**Projet**: smw-marketplace  
+**Projet**: nextcloud-marketplace  
 **Compatibilité**: Agents IA (ChatGPT, Claude, Copilot) + Humains

@@ -20,10 +20,10 @@ classification:
     - "packer"
     - "tls"
     - "security"
-    - "mediawiki"
-    - "smw"
+    - "nextcloud"
+    - "nginx"
 
-tags: ["azure-marketplace", "vm-offer", "certification", "partner-center", "packer", "open-source", "byol", "compliance", "smw", "mediawiki"]
+tags: ["azure-marketplace", "vm-offer", "certification", "partner-center", "packer", "open-source", "byol", "compliance", "nextcloud", "nginx"]
 stakeholders: ["@dev-team", "@devops-team", "@architecture-team"]
 effort: "high"
 related_issues: []
@@ -54,7 +54,7 @@ superseded_by: null
 
 ## 🎯 Contexte
 
-Le projet **smw-marketplace** vise à publier une offre de type **Virtual Machine (VM)** sur Microsoft Azure Marketplace intégrant **Semantic MediaWiki** (MediaWiki 1.43.x + SMW 6.0.1 + PHP 8.2 + MySQL 8.x + Apache 2.4), destinée aux organisations gérant une base de connaissances sémantique.
+Le projet **nextcloud-marketplace** vise à publier une offre de type **Virtual Machine (VM)** sur Microsoft Azure Marketplace intégrant **Nextcloud Hub** (Nextcloud Hub 31.x + PHP 8.2 + Nginx + MariaDB 10.6+), destinée aux organisations souhaitant déployer un stockage cloud enterprise.
 
 Microsoft impose un ensemble d'exigences techniques, de sécurité et de contenu pour qu'une image VM soit certifiée et publiée. Sans conformité à ces exigences, le processus de certification échoue automatiquement.
 
@@ -116,9 +116,9 @@ Microsoft Marketplace Live
 ```bash
 # env/.env.dev
 MARKETPLACE_PUBLISHER_ID="cotechnoe"
-OFFER_ID="smw-knowledge-base"          # max 50 chars, minuscules, tirets, IMMUABLE après création
-OFFER_ALIAS="SMW Knowledge Base VM"    # Nom interne Partner Center (invisible clients)
-IMAGE_GALLERY="galSMWMarketplace"      # Azure Compute Gallery pour les images
+OFFER_ID="nextcloud-server"          # max 50 chars, minuscules, tirets, IMMUABLE après création
+OFFER_ALIAS="Nextcloud Hub VM"    # Nom interne Partner Center (invisible clients)
+IMAGE_GALLERY="galNCMarketplace"      # Azure Compute Gallery pour les images
 ```
 
 ### Contrainte tenant Entra
@@ -159,7 +159,7 @@ make marketplace-gallery-permissions
 
 Le target délègue à `packer/scripts/marketplace-gallery-permissions.sh` qui :
 1. Enregistre le RP `Microsoft.PartnerCenterIngestion` (si absent)
-2. Résout l'ID de la gallery `galSMWMarketplace` dans `rg-smw-marketplace`
+2. Résout l'ID de la gallery `galNCMarketplace` dans `rg-nc-marketplace`
 3. Crée les deux assignations de rôle (skip si déjà existantes)
 4. Vérifie le résultat final
 
@@ -168,8 +168,8 @@ Le target délègue à `packer/scripts/marketplace-gallery-permissions.sh` qui :
 ```bash
 # Lister les assignations sur la gallery
 GALLERY_ID=$(az sig show \
-  --resource-group rg-smw-marketplace \
-  --gallery-name galSMWMarketplace \
+  --resource-group rg-nc-marketplace \
+  --gallery-name galNCMarketplace \
   --query id -o tsv)
 az role assignment list --scope "$GALLERY_ID" \
   --query "[?contains(roleDefinitionId,'cf7c76d2')].{SP:principalId,Rôle:roleDefinitionName}" \
@@ -213,7 +213,7 @@ approved: ubuntu 22.04 LTS (Jammy)  ← base image Azure endorsée
 | **Données persistantes** | Ne pas stocker sur OS disk | Perte données clients |
 | **Data disks** | Tous les plans = même nombre de data disks | Rejet certification |
 
-**Pour SMW** : La base de données MySQL, les uploads MediaWiki et les logs Apache/PHP doivent être sur un **data disk dédié** de 128 GB, pas sur le disque OS.
+**Pour Nextcloud** : La base de données MariaDB, les données Nextcloud et les logs Nginx/PHP doivent être sur un **data disk dédié** de 256 GB, pas sur le disque OS.
 
 ### Généralisation obligatoire
 
@@ -225,7 +225,7 @@ Toute image soumise à Marketplace doit être **généralisée** (déprovisionni
 sudo waagent -deprovision+user -force
 ```
 
-Dans le template Packer (`smw-vm.pkr.hcl`) :
+Dans le template Packer (`nextcloud-vm.pkr.hcl`) :
 
 ```hcl
 provisioner "shell" {
@@ -242,20 +242,20 @@ provisioner "shell" {
 
 #### Problème rencontré (2026-05-17)
 
-La gallery `galSMWMarketplace` était initialement créée avec l'image definition
-`smw-knowledge-base` configurée en `SecurityType = TrustedLaunchSupported`.
+La gallery `galNCMarketplace` était initialement créée avec l'image definition
+`nextcloud-server` configurée en `SecurityType = TrustedLaunchSupported`.
 Cette valeur est le défaut de la commande `az sig image-definition create` lorsque
 le paramètre `--features` n'est pas spécifié.
 
-**Symptôme** : `galSMWMarketplace / smw-knowledge-base` était invisible dans le
+**Symptôme** : `galNCMarketplace / nextcloud-server` était invisible dans le
 dropdown "Gallery image" du Partner Center Technical Configuration, alors que
 `galDSpaceMarketplace` (configurée en `TrustedLaunch`) apparaissait normalement.
 
 | Gallery | SecurityType | Visible Partner Center |
 |---------|-------------|----------------------|
 | `galDSpaceMarketplace` | `TrustedLaunch` | ✅ OUI |
-| `galSMWMarketplace` (avant fix) | `TrustedLaunchSupported` | ❌ NON |
-| `galSMWMarketplace` (après fix) | `TrustedLaunch` | ✅ OUI |
+| `galNCMarketplace` (avant fix) | `TrustedLaunchSupported` | ❌ NON |
+| `galNCMarketplace` (après fix) | `TrustedLaunch` | ✅ OUI |
 
 #### Fix exécuté (2026-05-17)
 
@@ -264,41 +264,41 @@ ses versions, puis leur recréation avec `--features "SecurityType=TrustedLaunch
 
 ```bash
 # 1. Supprimer toutes les versions (6.0.20260511, 6.0.20260512, 6.0.20260514, 6.0.20260517)
-az sig image-version delete --resource-group rg-smw-marketplace \
-  --gallery-name galSMWMarketplace --gallery-image-definition smw-knowledge-base \
+az sig image-version delete --resource-group rg-nc-marketplace \
+  --gallery-name galNCMarketplace --gallery-image-definition nextcloud-server \
   --gallery-image-version <version>
 
 # 2. Supprimer l'image definition (TrustedLaunchSupported)
-az sig image-definition delete --resource-group rg-smw-marketplace \
-  --gallery-name galSMWMarketplace --gallery-image-definition smw-knowledge-base
+az sig image-definition delete --resource-group rg-nc-marketplace \
+  --gallery-name galNCMarketplace --gallery-image-definition nextcloud-server
 
 # 3. Recréer avec SecurityType=TrustedLaunch (OBLIGATOIRE)
 az sig image-definition create \
-  --resource-group rg-smw-marketplace \
-  --gallery-name galSMWMarketplace \
-  --gallery-image-definition smw-knowledge-base \
-  --publisher cotechnoe --offer smw-knowledge-base --sku standard \
+  --resource-group rg-nc-marketplace \
+  --gallery-name galNCMarketplace \
+  --gallery-image-definition nextcloud-server \
+  --publisher cotechnoe --offer nextcloud-server --sku standard \
   --os-type Linux --hyper-v-generation V2 \
   --features "SecurityType=TrustedLaunch"
 
 # 4. Recréer la version depuis la managed image intermédiaire
 az sig image-version create \
-  --resource-group rg-smw-marketplace \
-  --gallery-name galSMWMarketplace \
-  --gallery-image-definition smw-knowledge-base \
+  --resource-group rg-nc-marketplace \
+  --gallery-name galNCMarketplace \
+  --gallery-image-definition nextcloud-server \
   --gallery-image-version 6.0.20260517 \
-  --managed-image "...tmp-smw-knowledge-base-6.0.1-20260517" \
+  --managed-image "...tmp-nextcloud-server-6.0.1-20260517" \
   --target-regions canadacentral
 ```
 
 **Vérification finale** :
 ```bash
 az sig image-definition list \
-  --resource-group rg-smw-marketplace \
-  --gallery-name galSMWMarketplace \
+  --resource-group rg-nc-marketplace \
+  --gallery-name galNCMarketplace \
   --query "[].{Name:name, SecurityType:features[?name=='SecurityType'].value|[0], HyperVGen:hyperVGeneration, State:provisioningState}" \
   -o table
-# Résultat : smw-knowledge-base | TrustedLaunch | V2 | Succeeded ✅
+# Résultat : nextcloud-server | TrustedLaunch | V2 | Succeeded ✅
 ```
 
 #### Prévention des régressions
@@ -311,9 +311,9 @@ az sig image-definition list \
 | **Vérification** | `az sig image-definition list ... --query "features[?name=='SecurityType'].value"` doit retourner `TrustedLaunch` |
 
 > **Note Packer** : Le `SecurityType` de l'image definition n'est pas configurable dans
-> `packer/smw-vm.pkr.hcl` — il est fixé à la création de la definition. Le bloc
+> `packer/nextcloud-vm.pkr.hcl` — il est fixé à la création de la definition. Le bloc
 > `shared_image_gallery_destination` ne contient pas ce paramètre. Voir
-> `packer/smw-vm.pkr.hcl` pour le commentaire de prérequis.
+> `packer/nextcloud-vm.pkr.hcl` pour le commentaire de prérequis.
 ---
 
 ## 🔒 Décision 3 : Conformité Sécurité (Tests de Certification Linux)
@@ -357,7 +357,7 @@ Le test `verify_no_pre_exist_users` de Microsoft vérifie uniquement :
 - Utilisateurs avec shell non-interactif (`/sbin/nologin` ou `/bin/false`)
 - Utilisateurs sans fichier `authorized_keys`
 
-**Implémentation SMW** : L'utilisateur `www-data` (Apache/PHP-FPM) et `mysql` sont créés automatiquement par `apt install apache2` et `apt install mysql-server` — aucun mot de passe configuré, shell non-interactif. Ces utilisateurs passent la certification.
+**Implémentation Nextcloud** : L'utilisateur `www-data` (Nginx/PHP-FPM) et `www-data` sont créés automatiquement par `apt install nginx` et `apt install mariadb-server` — aucun mot de passe configuré, shell non-interactif. Ces utilisateurs passent la certification.
 
 ### Script `packer/provisioners/configure-ssh.sh`
 
@@ -384,12 +384,11 @@ echo "[INFO] SSH configuré (ClientAliveInterval=120, PermitRootLogin=no)"
 ### Script `packer/provisioners/configure-tls.sh` (inclus dans 07-security-harden.sh)
 
 ```bash
-# Désactiver TLS 1.0 et 1.1 dans Apache
-cat >> /etc/apache2/mods-available/ssl.conf << 'EOF'
-SSLProtocol all -SSLv3 -TLSv1 -TLSv1.1
-SSLCipherSuite HIGH:!aNULL:!MD5:!3DES
-SSLHonorCipherOrder on
-EOF
+# Désactiver TLS 1.0 et 1.1 dans Nginx
+# Dans /etc/nginx/nginx.conf ou le vhost Nextcloud :
+# ssl_protocols TLSv1.2 TLSv1.3;
+# ssl_ciphers HIGH:!aNULL:!MD5:!3DES;
+# ssl_prefer_server_ciphers on;
 
 # Désactiver TLS 1.0/1.1 dans OpenSSL système
 if ! grep -q "MinProtocol" /etc/ssl/openssl.cnf; then
@@ -402,19 +401,19 @@ EOF2
 fi
 ```
 
-### Ordre des provisioners dans `smw-vm.pkr.hcl`
+### Ordre des provisioners dans `nextcloud-vm.pkr.hcl`
 
 ```hcl
 build {
-  sources = ["source.azure-arm.smw_vm"]
+  sources = ["source.azure-arm.nextcloud_vm"]
 
-  # 1. Stack SMW
+  # 1. Stack Nextcloud
   provisioner "shell" { script = "packer/provisioners/01-install-base.sh" }
   provisioner "shell" { script = "packer/provisioners/02-install-php.sh" }
-  provisioner "shell" { script = "packer/provisioners/03-install-apache.sh" }
-  provisioner "shell" { script = "packer/provisioners/04-install-mysql.sh" }
-  provisioner "shell" { script = "packer/provisioners/05-install-mediawiki.sh" }
-  provisioner "shell" { script = "packer/provisioners/06-install-smw.sh" }
+  provisioner "shell" { script = "packer/provisioners/03-install-nginx.sh" }
+  provisioner "shell" { script = "packer/provisioners/04-install-mariadb.sh" }
+  provisioner "shell" { script = "packer/provisioners/05-install-redis.sh" }
+  provisioner "shell" { script = "packer/provisioners/06-install-nextcloud.sh" }
 
   # 2. Conformité Marketplace
   provisioner "shell" { script = "packer/provisioners/07-security-harden.sh" }
@@ -451,18 +450,18 @@ $0.07 USD / vCPU / heure
 
 | VM Size | vCPU | RAM | Frais logiciel/h | Frais logiciel/mois (~730h) |
 |---------|------|-----|------------------|--------------------------|
-| Standard_D2s_v3 *(minimum SMW)* | 2 | 8 GB | $0.14/h | ~$102/mois |
+| Standard_D2s_v3 *(minimum Nextcloud)* | 2 | 8 GB | $0.14/h | ~$102/mois |
 | Standard_D4s_v3 *(recommandée)* | 4 | 16 GB | $0.28/h | ~$204/mois |
 | Standard_D8s_v3 | 8 | 32 GB | $0.56/h | ~$409/mois |
 
 > Ces montants s'ajoutent au coût Azure de la VM (compute, disque, réseau).
 
 **Justification du positionnement $0.07/vCPU :**
-- SMW est une stack complète (MediaWiki + SMW + Apache + PHP-FPM + MySQL) avec configuration Azure prête à l'emploi — valeur ajoutée pour les organisations
+- Nextcloud Hub est une stack complète (Nextcloud + Nginx + PHP-FPM + MariaDB + Redis) avec configuration Azure prête à l'emploi — valeur ajoutée pour les organisations
 - Permet un essai gratuit de 1 mois pour faciliter l'adoption
 - Financement du support, de la maintenance des images et des mises à jour de certification
 - Microsoft collecte et reverse les paiements (moins ~3% de commission agency fee)
-- Licence GPL-2.0 (MediaWiki + SMW) — modèle usage-based conforme à la licence open source
+- Licence AGPL-3.0 (Nextcloud Hub) — modèle usage-based conforme à la licence open source
 
 ---
 
@@ -471,22 +470,22 @@ $0.07 USD / vCPU / heure
 ### Identifiants offre
 
 ```
-Offer ID   : smw-knowledge-base       ← IMMUABLE après création
-Offer Name : SMW Knowledge Base
+Offer ID   : nextcloud-server       ← IMMUABLE après création
+Offer Name : Nextcloud Hub
 ```
 
 ### Champs obligatoires
 
 | Champ | Contenu cible |
 |-------|--------------|
-| **Titre** | "Semantic MediaWiki — Knowledge Base on Azure" |
-| **Summary** | **Max 100 caractères** — Ex: "Semantic MediaWiki knowledge base with structured data, ontologies, and SPARQL queries on Azure." |
-| **Description** | 2-3 paragraphes : (1) qu'est-ce que SMW, (2) valeur pour organisations gérant des connaissances structurées, (3) ce que l'image fournit |
-| **Keywords** | **Max 20 mots-clés** — Ex: `MediaWiki`, `Semantic MediaWiki`, `SMW`, `knowledge base`, `wiki`, `ontology`, `SPARQL`, `structured data`, `linked data`, `open-source`, `knowledge management` |
+| **Titre** | "Nextcloud Hub — Collaborative Cloud Platform on Azure" |
+| **Summary** | **Max 100 caractères** — Ex: "Self-hosted Nextcloud Hub: secure file sharing, video calls, groupware, and office suite on Azure." |
+| **Description** | 2-3 paragraphes : (1) qu'est-ce que Nextcloud Hub, (2) valeur pour organisations gérant des données en souveraineté, (3) ce que l'image fournit |
+| **Keywords** | **Max 20 mots-clés** — Ex: `Nextcloud`, `file sharing`, `collaboration`, `groupware`, `video conferencing`, `office suite`, `self-hosted`, `open-source`, `privacy`, `cloud storage`, `AGPL` |
 | **Logo Small** | 48×48 px PNG |
 | **Logo Medium** | 90×90 px PNG |
 | **Logo Large** | 216×216 à 350×350 px PNG (**obligatoire**) |
-| **Screenshots** | Max 5, résolution **1280×720 px PNG** (MediaWiki UI, page sémantique, SMW Special:Browse) — inclure les mots-clés dans les noms de fichiers |
+| **Screenshots** | Max 5, résolution **1280×720 px PNG** (Nextcloud Files UI, Talk, Groupware, Office) — inclure les mots-clés dans les noms de fichiers |
 | **Vidéo** | 60-90 secondes — le **client** comme héros (adresser les défis principaux) — inclure les mots-clés dans le titre de la vidéo |
 | **Documents** | PDF uniquement (livres blancs, guides, présentations) — ajouter l'URL de landing page avec UTM params |
 | **Catégories** | "Analytics" (primaire), "Developer Tools" (secondaire) |
@@ -494,7 +493,7 @@ Offer Name : SMW Knowledge Base
 | **Support URL** | GitHub Issues ou site support |
 | **Support email** | Obligatoire |
 | **Privacy policy URL** | URL publique (GitHub ou site) |
-| **Terms of use** | GPL-2.0 URL : `https://www.gnu.org/licenses/old-licenses/gpl-2.0.html` |
+| **Terms of use** | AGPL-3.0 URL : `https://www.gnu.org/licenses/agpl-3.0.html` |
 
 ### Customer leads
 
@@ -509,15 +508,15 @@ Configurer une destination de leads dans Partner Center :
 ### Structure recommandée
 
 ```
-Offer: smw-knowledge-base
+Offer: nextcloud-server
  └── Plan: standard
-       ├── Plan name: Semantic MediaWiki Standard
+       ├── Plan name: Nextcloud Hub Standard
        ├── Modèle: Usage-based — Per vCPU
        ├── Prix: $0.07 USD / vCPU / heure
        ├── Essai gratuit: 1 mois (optionnel, recommandé pour adoption)
-       ├── VM sizes recommandées: Standard_D2s_v3 (2 vCPU, 8 GB RAM minimum SMW)
+       ├── VM sizes recommandées: Standard_D2s_v3 (2 vCPU, 8 GB RAM minimum)
        ├── OS disk: 50 GB (Ubuntu 22.04 LTS)
-       ├── Data disk: 1 × 128 GB (MySQL + uploads + logs)
+       ├── Data disk: 1 × 256 GB (MariaDB + données + logs)
        └── Regions: Tous marchés (Canada Central prioritaire)
 ```
 
@@ -540,9 +539,9 @@ Avant publication live, configurer une **Preview Audience** (Azure subscription 
 
 **Validation manuelle requise avant "Go Live"** :
 - [ ] Déployer depuis le Marketplace preview → VM démarre correctement
-- [ ] MediaWiki accessible via HTTPS port 443
+- [ ] Nextcloud accessible via HTTPS port 443
 - [ ] Redirect HTTP 80 → HTTPS 301 fonctionnel
-- [ ] SMW fonctionnel (Special:Browse accessible)
+- [ ] Nextcloud fonctionnel (`/status.php` répond installé=true)
 - [ ] `make vm-smoke-test` passe
 
 ---
@@ -583,9 +582,9 @@ Pour soumettre une image VHD au Partner Center, un **SAS URI** valide est requis
 # scripts/generate-vhd-sas-uri.sh
 set -euo pipefail
 
-STORAGE_ACCOUNT="${STORAGE_ACCOUNT:-stsmwmarketplace}"
+STORAGE_ACCOUNT="${STORAGE_ACCOUNT:-stncmarketplace}"
 CONTAINER="${CONTAINER:-vhds}"
-VHD_NAME="${VHD_NAME:-smw-vm.vhd}"
+VHD_NAME="${VHD_NAME:-nextcloud-vm.vhd}"
 EXPIRY=$(date -u -d "+30 days" '+%Y-%m-%dT%H:%MZ')
 
 echo "[INFO] Génération SAS URI pour $VHD_NAME (expiration: $EXPIRY)"
@@ -607,7 +606,7 @@ az storage blob generate-sas \
 - [ ] Aucune CVE critique détectée (`apt-get upgrade` récent)
 - [ ] Image généralisée (`waagent -deprovision+user` exécuté)
 - [ ] Bash history vidé (< 1 KB)
-- [ ] TLS 1.0/1.1 désactivés dans Apache et OpenSSL
+- [ ] TLS 1.0/1.1 désactivés dans Nginx et OpenSSL
 
 ---
 
@@ -617,22 +616,22 @@ az storage blob generate-sas \
 |-----|---------------------|
 | [ADR-600](./600-DEVOPS-bootstrap-configuration-management.md) | Ajouter variables `MARKETPLACE_PUBLISHER_ID`, `OFFER_ID`, `IMAGE_GALLERY` dans `env/.env.dev` |
 | [ADR-602](./602-DEVOPS-makefile-orchestrateur.md) | Ajouter targets: `make marketplace-gallery-permissions`, `make marketplace-validate`, `make marketplace-publish` |
-| [ADR-613](./613-DEVOPS-provisioner-architecture-validation.md) | Séquence provisioners 01–08 documentée, `smw-vm.pkr.hcl` |
+| [ADR-613](./613-DEVOPS-provisioner-architecture-validation.md) | Séquence provisioners 01–08 documentée, `nextcloud-vm.pkr.hcl` |
 
 ### Variables à ajouter dans `env/.env.dev` (ADR-600)
 
 ```bash
 # === Azure Marketplace ===
 MARKETPLACE_PUBLISHER_ID="cotechnoe"
-OFFER_ID="smw-knowledge-base"
+OFFER_ID="nextcloud-server"
 PLAN_ID="standard"
 PLAN_PRICE_PER_VCPU="0.07"             # USD / vCPU / heure
-IMAGE_GALLERY="galSMWMarketplace"
-IMAGE_DEFINITION="smw-vm"
+IMAGE_GALLERY="galNCMarketplace"
+IMAGE_DEFINITION="nextcloud-vm"
 VM_GEN="V2"                            # Gen2 requis pour Ubuntu 22.04
 
 # Storage pour Customer Leads
-LEADS_STORAGE_ACCOUNT="stsmwmarketplaceleads"
+LEADS_STORAGE_ACCOUNT="stncmarketplaceleads"
 LEADS_TABLE_NAME="MarketplaceLeads"
 ```
 
@@ -656,7 +655,7 @@ LEADS_TABLE_NAME="MarketplaceLeads"
 |--------|------------|
 | Tenant Entra unique requis | Vérifier alignment dès création du compte Partner Center |
 | `waagent -deprovision+user` irréversible | Toujours exécuter sur une copie, jamais sur la VM de dev |
-| Offer ID immuable après création | Offer ID: `smw-knowledge-base` — à valider avant création dans Partner Center |
+| Offer ID immuable après création | Offer ID: `nextcloud-server` — à valider avant création dans Partner Center |
 | Prix per vCPU immuable après publication | Valider $0.07/vCPU/h avant le premier publish live |
 | Data disk count identique dans tous les plans | Standardiser à 1 data disk (128 GB) dès le départ |
 | Bash history > 1 KB = rejet | `08-cleanup-generalize.sh` doit toujours être la pénultième étape Packer |
@@ -673,13 +672,13 @@ La certification et la publication live ne sont que la **première étape**. La 
 
 **Décision** : Le listing doit respecter les recommandations Microsoft en matière de présentation avant tout "Go Live".
 
-| Élément | Règle SMW | Source |
+| Élément | Règle Nextcloud | Source |
 |---------|-----------|--------|
-| **Titre** | "Semantic MediaWiki — Knowledge Base on Azure" — inclure les termes de recherche (wiki, knowledge base, semantic) | GTM best practices |
+| **Titre** | "Nextcloud Hub — Collaborative Cloud Platform on Azure" — inclure les termes de recherche (wiki, knowledge base, semantic) | GTM best practices |
 | **Description** | Commencer par la proposition de valeur (2 premières phrases = extraits de recherche) | GTM best practices |
 | **Logo app details** | PNG 216×216 à 350×350 px (obligatoire) | GTM best practices |
 | **Logo search** | 48×48 px PNG — généré automatiquement par Partner Center depuis le grand logo | GTM best practices |
-| **Screenshots** | Max 5 × 1280×720 px PNG — noms de fichiers incluant des mots-clés (`smw-browse-ontology.png`) | GTM best practices |
+| **Screenshots** | Max 5 × 1280×720 px PNG — noms de fichiers incluant des mots-clés (`nextcloud-files-dashboard.png`) | GTM best practices |
 | **Vidéo** | 60-90 secondes — le **client** comme héros (pas l'éditeur), adresser les problèmes/objectifs principaux | GTM best practices |
 | **Documents "Learn more"** | Format PDF (livres blancs, guides d'usage) — éduquer, ne pas vendre ; ajouter URL landing page + UTM params | GTM best practices |
 
@@ -703,18 +702,18 @@ Après le premier "Go Live", utiliser les ressources officielles Microsoft pour 
 Tout lien vers le listing Marketplace doit inclure des paramètres de suivi pour mesurer l'efficacité des campagnes :
 
 ```
-https://azuremarketplace.microsoft.com/en-US/marketplace/apps/cotechnoe.smw-knowledge-base
+https://azuremarketplace.microsoft.com/en-US/marketplace/apps/cotechnoe.nextcloud-server
   ?ocid=<campaign_id>&utm_source=<source>&utm_medium=<medium>&utm_campaign=<campaign>
 ```
 
-| Paramètre | Obligatoire | Exemple SMW |
+| Paramètre | Obligatoire | Exemple Nextcloud |
 |-----------|-------------|-------------|
-| `ocid` | ✅ Recommandé | `smw_newsletter_v1`, `smw_github_readme` |
+| `ocid` | ✅ Recommandé | `nc_newsletter_v1`, `nc_github_readme` |
 | `utm_source` | ✅ Recommandé | `newsletter`, `linkedin`, `github`, `website` |
 | `utm_medium` | ✅ Recommandé | `email`, `social`, `referral`, `cpc` |
 | `utm_campaign` | ✅ Recommandé | `v1_launch`, `spring2026`, `partner_promo` |
 | `utm_content` | Optionnel | `badge_readme`, `cta_hero`, `footer_link` |
-| `utm_term` | Optionnel (payant) | `semantic-mediawiki-azure` |
+| `utm_term` | Optionnel (payant) | `nextcloud-azure` |
 
 **Suivi des résultats :**
 - Trafic et conversions : [Insights workspace](https://partner.microsoft.com/dashboard/insights/analytics/overview)
@@ -726,7 +725,7 @@ https://azuremarketplace.microsoft.com/en-US/marketplace/apps/cotechnoe.smw-know
 
 | Option | Complexité | Recommandation |
 |--------|-----------|----------------|
-| **Azure Table Storage** | Faible | ✅ Prioritaire pour SMW (storage account déjà dans `env/`) |
+| **Azure Table Storage** | Faible | ✅ Prioritaire pour Nextcloud (storage account déjà dans `env/`) |
 | HTTPS Endpoint (Azure Function) | Moyenne | Alternative si intégration CRM requise |
 | CRM direct (Dynamics, Salesforce) | Élevée | À évaluer en phase de croissance |
 
@@ -755,8 +754,8 @@ https://azuremarketplace.microsoft.com/en-US/marketplace/apps/cotechnoe.smw-know
 
 | Date | Auteur | Changement | Raison |
 |------|--------|------------|--------|
-| 2026-04-16 | @dev-team | Création ADR-800 | Formalisation bonnes pratiques Microsoft Marketplace pour SMW (sources: learn.microsoft.com) |
-| 2026-05-17 | @dev-team | Ajout Décision 2 — SecurityType TrustedLaunch | Fix image definition `galSMWMarketplace` invisible dans Partner Center (TrustedLaunchSupported → TrustedLaunch) |
+| 2026-04-16 | @dev-team | Création ADR-800 | Formalisation bonnes pratiques Microsoft Marketplace pour Nextcloud Hub (sources: learn.microsoft.com) |
+| 2026-05-17 | @dev-team | Ajout Décision 2 — SecurityType TrustedLaunch | Fix image definition `galNCMarketplace` invisible dans Partner Center (TrustedLaunchSupported → TrustedLaunch) |
 | 2026-06-xx | @dev-team | Ajout Décision 9 GTM | Intégration recommandations officielles Microsoft GTM best practices et GTM Toolkit |
 
 **Référence Certification Policies** : Version 1.67 (August 26, 2024) — https://learn.microsoft.com/en-us/legal/marketplace/certification-policies

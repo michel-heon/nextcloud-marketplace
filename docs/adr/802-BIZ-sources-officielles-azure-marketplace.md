@@ -180,17 +180,17 @@ Les sources ci-dessous sont les références faisant foi. Elles priment sur tout
 
 | Paramètre | Rôle | Exemple |
 |-----------|------|---------|
-| `ocid` | Identifiant unique de campagne (grouper les résultats) | `smw_newsletter_may2026` |
+| `ocid` | Identifiant unique de campagne (grouper les résultats) | `nc_newsletter_may2026` |
 | `utm_source` | Source du trafic | `newsletter`, `linkedin`, `website` |
 | `utm_medium` | Type de lien | `email`, `cpc`, `social` |
 | `utm_campaign` | Campagne ou promotion | `spring_launch`, `v1_release` |
 | `utm_term` | Mots-clés payants ciblés | `semantic-wiki` |
 | `utm_content` | Élément cliqué (A/B testing) | `header_button`, `cta_banner` |
 
-Exemple d'URL trackée vers le listing SMW :
+Exemple d'URL trackée vers le listing Nextcloud Hub :
 ```
-https://azuremarketplace.microsoft.com/en-US/marketplace/apps/cotechnoe.smw-knowledge-base
-  ?ocid=smw_newsletter&utm_source=newsletter&utm_medium=email&utm_campaign=spring_launch
+https://azuremarketplace.microsoft.com/en-US/marketplace/apps/cotechnoe.nextcloud-server
+  ?ocid=nc_newsletter&utm_source=newsletter&utm_medium=email&utm_campaign=spring_launch
 ```
 
 Résultats consultables dans l'[Insights workspace](https://partner.microsoft.com/dashboard/insights/analytics/overview) et le [Referrals workspace](https://partner.microsoft.com/dashboard/v2/referrals/v3/leads/marketplace) de Partner Center.

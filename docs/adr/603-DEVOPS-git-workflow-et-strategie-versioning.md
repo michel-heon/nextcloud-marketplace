@@ -192,8 +192,8 @@ gh pr create --base main --head michel-heon/packer-nextcloud-base-image \
   --body "Première image VM Nextcloud complète:
   - Template Packer Ubuntu 22.04 LTS
   - Installation Nextcloud Hub 31 + MariaDB
-  - Installation Apache 2.4 + PHP-FPM
-  - Configuration MySQL
+  - Installation Nginx + PHP-FPM
+  - Configuration MariaDB
   - Hardening sécurité de base"
 
 # 6. Après merge, tag de release sur main
@@ -201,7 +201,7 @@ git checkout main && git pull origin main
 git tag -a v1.0.0-initial-nextcloud-vm -m "Release v1.0.0: Première image VM Nextcloud complète
 
 - Nextcloud Hub 31 sur Ubuntu 22.04 LTS
-- Apache 2.4 + PHP 8.2
+- Nginx + PHP 8.2
 - MariaDB + Redis
 - Hardening sécurité de base
 
@@ -283,7 +283,7 @@ git commit -m "feat(packer): template Nextcloud Ubuntu 22.04 LTS initial"
 
 git commit -m "feat(tls): configuration TLS automatique avec Let's Encrypt ou cert auto-signé"
 
-git commit -m "fix(apache): correction timeout connexion MySQL
+git commit -m "fix(nginx): correction timeout connexion MariaDB
 
 - Augmentation timeout 30s → 60s
 - Ajout retry logic exponential backoff pour SPARQL endpoint"

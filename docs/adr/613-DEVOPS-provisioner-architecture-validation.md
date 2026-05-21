@@ -58,7 +58,7 @@ effort: "high"
 Le processus de création d'image Azure Marketplace **Nextcloud Hub** via Packer utilise **9 scripts de provisioning exécutés séquentiellement**. Chaque script effectue des opérations critiques :
 
 - Installation de composants système (PHP, Nginx, MariaDB, Redis, Nextcloud)
-- Configuration de services (Apache, PHP-FPM, MySQL)
+- Configuration de services (Nginx, PHP-FPM, MariaDB)
 - Gestion de la propriété des fichiers (`www-data`)
 - Configuration systemd
 - Déploiement cloud-init pour configuration au premier démarrage
@@ -72,13 +72,13 @@ Le processus de création d'image Azure Marketplace **Nextcloud Hub** via Packer
 3. **Overwrites configuration** : Scripts écrasant les configurations d'autres scripts
 4. **Cleanup destructif** : Généralisation supprimant des configurations nécessaires
 5. **Cloud-init timing** : Scripts firstboot perdus lors de la généralisation
-6. **Credentials dans l'image** : Mots de passe MySQL ou clés non nettoyés avant generalisation
+6. **Credentials dans l'image** : Mots de passe MariaDB ou clés non nettoyés avant generalisation
 
 ### Exigences Marketplace Azure
 
 - **ADR-200** : Image généralisée (`waagent deprovision`)
 - **ADR-300** : Points de sécurité certifiés (TLS, SSH, ports, hardening)
-- **ADR-800** : Configuration MySQL post-boot via cloud-init
+- **ADR-800** : Configuration MariaDB post-boot via cloud-init
 - **ADR-302** : SSO via PluggableAuth + SimpleSAMLphp (configuration post-boot)
 - Services configurés mais non démarrés avec données sensibles dans l'image
 
@@ -94,7 +94,7 @@ L'architecture utilise **8 provisioners exécutés de manière séquentielle** a
 ├────────────────────────────────────────────────────────────────────┤
 │                                                                    │
 │  01-install-base.sh          → Base system setup                  │
-│      ├─ Directories: /data/uploads, /data/mysql, /data/logs      │
+│      ├─ Directories: /data/uploads, /data/mariadb, /data/logs      │
 │      ├─ Packages: curl, wget, git, unzip, ca-certificates        │
 │      └─ Locales et timezone                                       │
 │                                                                    │
@@ -104,30 +104,30 @@ L'architecture utilise **8 provisioners exécutés de manière séquentielle** a
 │      └─ Composer installé globalement                             │
 │                                                                    │
 │  03-install-nginx.sh        → Serveur web                        │
-│      ├─ Apache 2.4 + PHP-FPM socket Unix                         │
-│      ├─ mod_rewrite, mod_ssl, mod_headers activés                 │
-│      └─ VirtualHost HTTP → HTTPS redirect                         │
+│      ├─ Nginx + PHP-FPM socket Unix                         │
+│      ├─ sites-enabled configuré                                 │
+│      └─ Nginx VirtualHost configuré                         │
 │                                                                    │
 │  04-install-mariadb.sh         → Base de données                    │
-│      ├─ MySQL 8.x (Server + Client)                              │
-│      ├─ Datadir: /data/mysql (disque données)                    │
+│      ├─ MariaDB 10.6+ (Server + Client)                              │
+│      ├─ Datadir: /data/mariadb (disque données)                    │
 │      └─ mysql_secure_installation automatisé                      │
 │                                                                    │
 │  05-install-nextcloud.sh     → Wiki engine                        │
 │      ├─ Nextcloud Hub 31.x téléchargé depuis nextcloud.com        │
 │      ├─ Installé dans /var/www/nextcloud                         │
 │      ├─ Ownership: www-data:www-data                             │
-│      └─ Liens symboliques Apache configurés                       │
+│      └─ Nginx configuré pour Nextcloud                       │
 │                                                                    │
 │  06-install-nextcloud.sh           → Extension sémantique               │
 │      ├─ Apps Nextcloud via occ app:install                       │
 │      ├─ Extensions complémentaires: SemanticResultFormats, etc.  │
-│      └─ LocalSettings.php partiel (complété via cloud-init boot) │
+│      └─ config.php partiel (complété via cloud-init boot) │
 │                                                                    │
 │  07-security-harden.sh       → Hardening OS                       │
 │      ├─ UFW firewall: 443, 22 uniquement                         │
 │      ├─ fail2ban, auditd                                         │
-│      ├─ Désactivation TLS 1.0/1.1 dans Apache                    │
+│      ├─ Désactivation TLS 1.0/1.1 dans Nginx                    │
 │      └─ Suppression packages inutiles                             │
 │                                                                    │
 │  08-cleanup-generalize.sh    → Généralisation Azure               │
@@ -147,15 +147,15 @@ Lors du déploiement client depuis Azure Marketplace, un script cloud-init s'ex�
 # /etc/cloud/cloud.cfg.d/99-nextcloud-firstboot.cfg
 runcmd:
   - /opt/nextcloud-marketplace/scripts/firstboot/configure-nextcloud.sh
-  - /opt/nextcloud-marketplace/scripts/firstboot/configure-mysql.sh
+  - /opt/nextcloud-marketplace/scripts/firstboot/configure-mariadb.sh
   - /opt/nextcloud-marketplace/scripts/firstboot/configure-tls.sh
   - /opt/nextcloud-marketplace/scripts/firstboot/run-nextcloud-install.sh
   - /opt/nextcloud-marketplace/scripts/firstboot/run-nextcloud-maintenance.sh
 ```
 
 **Responsabilités cloud-init (post-déploiement client) :**
-- Création base de données MySQL avec mot de passe fourni par le client (ARM param `mysqlPassword`)
-- Configuration `LocalSettings.php` avec domaine client (`wikiUrl`)
+- Création base de données MariaDB avec mot de passe fourni par le client (ARM param `dbPassword`)
+- Configuration `config.php` avec domaine client (`nextcloudUrl`)
 - Exécution de `occ maintenance:install` (installation Nextcloud initiale)
 - Exécution de `occ upgrade` (initialisation et mise à jour DB)
 - Configuration TLS avec certificat Let's Encrypt ou custom
@@ -171,10 +171,10 @@ runcmd:
 ```bash
 # Répertoires sur le disque de données (128 GB)
 mkdir -p /data/nextcloud-data    # Stockage données Nextcloud
-mkdir -p /data/mysql      # Datadir MySQL
-mkdir -p /data/logs/apache
+mkdir -p /data/mariadb      # Datadir MariaDB
+mkdir -p /data/logs/nginx
 mkdir -p /data/logs/php
-mkdir -p /data/logs/mysql
+mkdir -p /data/logs/mariadb
 
 # Packages système de base
 apt-get update
@@ -216,45 +216,44 @@ curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin
 
 ### 03 — install-nginx.sh
 
-**Responsabilité** : Serveur web Apache 2.4 + intégration PHP-FPM
+**Responsabilité** : Serveur web Nginx + intégration PHP-FPM
 
 ```bash
-apt-get install -y apache2
+apt-get install -y nginx
 
-a2enmod rewrite ssl headers proxy_fcgi setenvif
-a2enconf php8.2-fpm
+# Supprimer site par défaut
+rm -f /etc/nginx/sites-enabled/default
 
 # VirtualHost par défaut — sera remplacé cloud-init avec domaine réel
 cp /opt/nextcloud-marketplace/config/nginx/nextcloud.conf \
    /etc/nginx/sites-available/nextcloud.conf
 ln -s /etc/nginx/sites-available/nextcloud.conf /etc/nginx/sites-enabled/
-a2dissite 000-default
 ```
 
 **Ownership final** :
 - `/var/www/html` → `www-data:www-data`
-- `/etc/apache2` → `root:root`
+- `/etc/nginx` → `root:root`
 
 **Préconditions** : PHP 8.2 installé  
-**Postconditions** : `apache2ctl configtest` retourne `Syntax OK`
+**Postconditions** : `nginx -t` retourne `syntax is ok`
 
 ---
 
 ### 04 — install-mariadb.sh
 
-**Responsabilité** : Installation MySQL 8.x avec datadir sur disque de données
+**Responsabilité** : Installation MariaDB 10.6+ avec datadir sur disque de données
 
 ```bash
-apt-get install -y mysql-server
+apt-get install -y mariadb-server
 
-# Reconfigurer datadir vers /data/mysql
-systemctl stop mysql
-rsync -av /var/lib/mysql/ /data/mysql/
-# Modifier /etc/mysql/mysql.conf.d/mysqld.cnf : datadir = /data/mysql
-chown -R mysql:mysql /data/mysql
+# Reconfigurer datadir vers /data/mariadb
+systemctl stop mariadb
+rsync -av /var/lib/mysql/ /data/mariadb/
+# Modifier /etc/mysql/mariadb.conf.d/50-server.cnf : datadir = /data/mariadb
+chown -R mysql:mysql /data/mariadb
 
 # mysql_secure_installation non-interactif
-mysql -u root <<SQL
+mariadb -u root <<SQL
   ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'TEMP_PLACEHOLDER';
   DELETE FROM mysql.user WHERE User='';
   DROP DATABASE IF EXISTS test;
@@ -262,10 +261,10 @@ mysql -u root <<SQL
 SQL
 ```
 
-**⚠️ Important** : Le mot de passe root est temporaire et nettoyé dans `08-cleanup-generalize.sh`. Le mot de passe final est configuré via cloud-init avec la valeur ARM param `mysqlPassword`.
+**⚠️ Important** : Le mot de passe root est temporaire et nettoyé dans `08-cleanup-generalize.sh`. Le mot de passe final est configuré via cloud-init avec la valeur ARM param `dbPassword`.
 
 **Ownership final** :
-- `/data/mysql` → `mysql:mysql`
+- `/data/mariadb` → `mysql:mysql`
 
 **Préconditions** : 01-install-base.sh exécuté  
 **Postconditions** : `mysqladmin -u root ping` retourne `mysqld is alive`
@@ -277,7 +276,7 @@ SQL
 **Responsabilité** : Téléchargement et installation Nextcloud Hub 31.x
 
 ```bash
-MW_VERSION="1.43.0"
+NC_VERSION="31.0.0"
 cd /tmp
 wget "https://download.nextcloud.com/server/releases/nextcloud-${NC_VERSION}.tar.bz2"
 tar -xjf "nextcloud-${NC_VERSION}.tar.bz2"
@@ -285,8 +284,7 @@ mv nextcloud /var/www/nextcloud
 
 chown -R www-data:www-data /var/www/nextcloud
 
-# Lien symbolique Apache
-# webroot is /var/www/nextcloud directly
+# Nginx — webroot is /var/www/nextcloud directly
 
 # Répertoire uploads sur disque de données
 mkdir -p /data/uploads
@@ -298,7 +296,7 @@ ln -s /data/nextcloud-data /var/www/nextcloud/data
 - `/var/www/nextcloud` → `www-data:www-data`
 - `/data/uploads` → `www-data:www-data`
 
-**Préconditions** : Apache + PHP installés  
+**Préconditions** : Nginx + PHP installés  
 **Postconditions** : `/var/www/nextcloud/index.php` existe
 
 ---
@@ -315,17 +313,17 @@ sudo -u www-data php /var/www/nextcloud/occ app:install user_saml
 sudo -u www-data php /var/www/nextcloud/occ app:install richdocuments
 sudo -u www-data composer update --no-dev -o
 
-# LocalSettings.php partiel (sans credentials — complété cloud-init)
+# config.php partiel (sans credentials — complété cloud-init)
 cp /opt/nextcloud-marketplace/config/nextcloud/config.partial.php \
    /var/www/nextcloud/config/config.php
 chown www-data:www-data /var/www/nextcloud/config/config.php
 ```
 
-**LocalSettings.partial.php contient :**
+**config.partial.php contient :**
 - `occ app:enable user_saml` + configuration SAML
-- `$wgDBtype = 'mysql';`
-- Configuration de base (langue, namespace, upload path)
-- **Ne contient PAS** : `$wgDBserver`, `$wgDBname`, `$wgDBuser`, `$wgDBpassword`, `$wgServer` — fournis par cloud-init
+- `'dbtype' => 'mysql',`
+- Configuration de base (langue, timezone, données)
+- **Ne contient PAS** : `'dbhost'`, `'dbname'`, `'dbuser'`, `'dbpassword'`, `'overwrite.cli.url'` — fournis par cloud-init
 
 **Préconditions** : Nextcloud installé, PHP disponible  
 **Postconditions** : `apps/user_saml/` existe ; Nextcloud opérationnel
@@ -351,11 +349,11 @@ cp /opt/nextcloud-marketplace/config/fail2ban/jail.local /etc/fail2ban/jail.loca
 # auditd
 apt-get install -y auditd audispd-plugins
 
-# TLS — désactiver protocoles faibles dans Apache
-cat >> /etc/apache2/mods-available/ssl.conf << 'EOF'
-SSLProtocol all -SSLv3 -TLSv1 -TLSv1.1
-SSLCipherSuite HIGH:!aNULL:!MD5:!3DES
-SSLHonorCipherOrder on
+# TLS — désactiver protocoles faibles dans Nginx
+cat >> /etc/nginx/snippets/ssl-params.conf << 'EOF'
+ssl_protocols TLSv1.2 TLSv1.3;
+ssl_ciphers HIGH:!aNULL:!MD5:!3DES;
+ssl_prefer_server_ciphers on;
 EOF
 
 # Désactiver password auth SSH
@@ -373,8 +371,8 @@ sed -i 's/PasswordAuthentication yes/PasswordAuthentication no/' /etc/ssh/sshd_c
 **Responsabilité** : Nettoyage et généralisation de l'image pour Azure Marketplace
 
 ```bash
-# Supprimer credentials temporaires MySQL
-mysql -u root -pTEMP_PLACEHOLDER -e "ALTER USER 'root'@'localhost' IDENTIFIED WITH auth_socket;"
+# Supprimer credentials temporaires MariaDB
+mariadb -u root -pTEMP_PLACEHOLDER -e "ALTER USER 'root'@'localhost' IDENTIFIED VIA unix_socket;"
 
 # Nettoyer logs et history
 find /var/log -type f -name "*.log" -exec truncate -s 0 {} \;
@@ -414,12 +412,12 @@ waagent -force -deprovision+user
 | Check | Commande | Attendu |
 |-------|----------|---------|
 | PHP version | `php -v` | `8.2.x` |
-| Apache status | `apache2ctl status` | Running |
+| Nginx status | `nginx -t` | `syntax is ok` |
 | MySQL ping | `mysqladmin ping` | `mysqld is alive` |
 | Nextcloud existe | `ls /var/www/nextcloud/index.php` | Fichier présent |
 | user_saml installé | `ls /var/www/nextcloud/apps/user_saml` | Répertoire présent |
 | UFW actif | `ufw status` | `Status: active` |
-| TLS config | `apache2ctl -D DUMP_MODULES` | `ssl_module` présent |
+| TLS config | `nginx -V` | TLS modules présent |
 | SSH password | `sshd -T \| grep passwordauth` | `no` |
 | Bash history vide | `wc -l /root/.bash_history` | `0` |
 
@@ -452,19 +450,19 @@ Points vérifiés automatiquement :
 |------------|-------|--------|-------------|
 | `/var/www/nextcloud` | `www-data` | `www-data` | 06-install-nextcloud |
 | `/data/nextcloud-data` | `www-data` | `www-data` | 06-install-nextcloud |
-| `/data/mysql` | `mysql` | `mysql` | 04-install-mysql |
-| `/data/logs/apache` | `www-data` | `www-data` | 01-install-base |
+| `/data/mariadb` | `mysql` | `mysql` | 04-install-mariadb |
+| `/data/logs/nginx` | `www-data` | `www-data` | 01-install-base |
 | `/data/logs/php` | `www-data` | `www-data` | 01-install-base |
-| `/data/logs/mysql` | `mysql` | `mysql` | 04-install-mysql |
-| `/etc/apache2` | `root` | `root` | 03-install-apache |
+| `/data/logs/mariadb` | `mysql` | `mysql` | 04-install-mariadb |
+| `/etc/nginx` | `root` | `root` | 03-install-nginx |
 
 ### Services dans l'Image (État Final)
 
 | Service | État dans l'image | Démarré au boot client | Responsable |
 |---------|------------------|------------------------|-------------|
-| `apache2` | Installé, enabled | ✅ Oui (via cloud-init après config) | 03-install-apache |
+| `nginx` | Installé, enabled | ✅ Oui (via cloud-init après config) | 03-install-nginx |
 | `php8.2-fpm` | Installé, enabled | ✅ Oui | 02-install-php |
-| `mysql` | Installé, enabled | ✅ Oui (après config cloud-init) | 04-install-mysql |
+| `mariadb` | Installé, enabled | ✅ Oui (après config cloud-init) | 04-install-mariadb |
 | `ufw` | Actif | ✅ Oui | 07-security-harden |
 | `fail2ban` | Installé, enabled | ✅ Oui | 07-security-harden |
 | `waagent` | Installé | ✅ Oui | Natif Ubuntu Azure |
@@ -475,7 +473,7 @@ Points vérifiés automatiquement :
 
 | Anti-Pattern | Risque | Mitigation |
 |--------------|--------|------------|
-| Credentials MySQL dans l'image | 🔴 Critique — rejet certification | Nettoyage dans 08-cleanup-generalize.sh |
+| Credentials MariaDB dans l'image | 🔴 Critique — rejet certification | Nettoyage dans 08-cleanup-generalize.sh |
 | `maintenance/install.php` dans Packer | 🔴 Critique — BDD non configurée | Exécution uniquement dans cloud-init |
 | `history` non nettoyé | 🔴 Critique — rejet certification | Nettoyage explicite dans 08 |
 | Ownership mixte www-data/root sur `/var/www/nextcloud` | 🟡 — erreurs permission PHP-FPM | Ownership homogène `www-data` dès 06 |
@@ -503,7 +501,7 @@ vm-smoke-test:
 @echo "Tests smoke post-déploiement..."
 ssh -i $(SSH_KEY) $(VM_USER)@$(VM_IP) 'php -v'
 ssh -i $(SSH_KEY) $(VM_USER)@$(VM_IP) 'mysqladmin ping'
-ssh -i $(SSH_KEY) $(VM_USER)@$(VM_IP) 'apache2ctl status'
+ssh -i $(SSH_KEY) $(VM_USER)@$(VM_IP) 'nginx -t'
 ```
 
 ---

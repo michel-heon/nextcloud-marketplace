@@ -2,7 +2,7 @@
 
 **Version**: 2.0  
 **Date**: 2026-04-01  
-**Projet**: smw-marketplace  
+**Projet**: nextcloud-marketplace  
 **Basée sur**: Bonnes pratiques industrie (AWS, Azure, GitHub ADR Organization)
 
 ---
@@ -61,14 +61,14 @@ classification:
 
 **Plages de numérotation réservées par domaine** :
 
-| Préfixe | Plage | Domaine | Exemples ADR smw-marketplace |
+| Préfixe | Plage | Domaine | Exemples ADR nextcloud-marketplace |
 |---------|-------|---------|-------------------------------|
 | `META` | 000-099 | Méta-processus | ADR-000: Processus ADR |
-| `ARCH` | 100-199 | Architecture | ADR-100: Architecture SMW VM Offer |
+| `ARCH` | 100-199 | Architecture | ADR-100: Architecture Nextcloud VM Offer |
 | `INFRA` | 200-299 | Infrastructure | ADR-200: Azure VM image build (Packer) |
 | `SEC` | 300-399 | Sécurité | ADR-300: TLS + Network Security Groups |
-| `DATA` | 400-499 | Données | ADR-400: Schéma MySQL MediaWiki |
-| `API` | 500-599 | API/Intégrations | ADR-500: Intégration MediaWiki API |
+| `DATA` | 400-499 | Données | ADR-400: Schéma MariaDB Nextcloud |
+| `API` | 500-599 | API/Intégrations | ADR-500: Intégration Nextcloud API |
 | `DEVOPS` | 600-699 | DevOps | ADR-600: Pipeline CI/CD provisioning |
 | `TEST` | 700-799 | Tests & QA | ADR-700: Stratégie validation Marketplace |
 | `BIZ` | 800-899 | Business | ADR-800: Modèle offre Azure Marketplace |
@@ -76,13 +76,13 @@ classification:
 
 **Descriptions par domaine** :
 
-| Valeur | Description | Exemples contexte smw-marketplace |
+| Valeur | Description | Exemples contexte nextcloud-marketplace |
 |--------|-------------|-------------------------------------|
-| `architecture` | Décisions architecturales SMW/MediaWiki | Patterns intégration MySQL + Apache |
+| `architecture` | Décisions architecturales Nextcloud | Patterns intégration MariaDB + Nginx |
 | `infrastructure` | Azure VM, Packer, Bicep, déploiement | Image VM, taille, région Azure |
 | `security` | TLS, réseau, conformité Marketplace | NSG, TLS certificates, RBAC Azure |
-| `data` | MySQL, données sémantiques SMW | Choix versions MySQL, propriétés SMW |
-| `api` | Interfaces MediaWiki API, intégrations | MediaWiki REST API, monitoring endpoints |
+| `data` | MariaDB, données Nextcloud | Choix versions MariaDB, fichiers Nextcloud |
+| `api` | Interfaces Nextcloud API, intégrations | Nextcloud REST API, monitoring endpoints |
 | `devops` | CI/CD, provisioning, automatisation | Scripts Packer, tests smoke |
 | `test` | Tests, validation Marketplace | Certification VM, tests conformité |
 | `business` | Offre Marketplace, licensing | Plan tarifaire, BYOL vs Pay-as-you-go |
@@ -108,11 +108,11 @@ classification:
 | `high` | Système-wide, breaking change possible | Cross-system, > 1 semaine | Hard |
 | `critical` | Fondamental, irréversible | Core architecture, migration coûteuse | Irreversible |
 
-**Aide décision (contexte smw-marketplace)**:
+**Aide décision (contexte nextcloud-marketplace)**:
 - **Low**: Changement version mineure PHP, ajout monitoring endpoint
-- **Medium**: Changement configuration MySQL, ajustement sizing VM
-- **High**: Changement version MySQL, base image OS VM
-- **Critical**: Choix plateforme cloud, architecture MediaWiki core
+- **Medium**: Changement configuration MariaDB, ajustement sizing VM
+- **High**: Changement version MariaDB, base image OS VM
+- **Critical**: Choix plateforme cloud, architecture Nextcloud core
 
 ---
 
@@ -120,9 +120,9 @@ classification:
 
 **Qualités système affectées (basé sur ISO 25010)**
 
-| Valeur | Description | Métriques Typiques | Pertinence smw-marketplace |
+| Valeur | Description | Métriques Typiques | Pertinence nextcloud-marketplace |
 |--------|-------------|-------------------|------------------------------|
-| `performance` | Latence, débit, scalabilité | p95 latency, RPS | Temps chargement MediaWiki, requêtes API |
+| `performance` | Latence, débit, scalabilité | p95 latency, RPS | Temps chargement Nextcloud, requêtes API |
 | `security` | Auth, autorisation, encryption | CVE count, TLS grade | TLS 1.2+, NSG rules, Marketplace compliance |
 | `reliability` | Disponibilité, tolérance pannes | Uptime %, MTBF | Disponibilité VM client, restart Apache |
 | `maintainability` | Modularité, testabilité | Test coverage | Scripts reproductibles, IaC |
@@ -153,10 +153,10 @@ classification:
 | `hard` | Élevé | > 1 semaine | Multiples systèmes |
 | `irreversible` | Impossible/Prohibitif | Migration complète | Critique, données |
 
-**Aide décision (contexte smw-marketplace)**:
+**Aide décision (contexte nextcloud-marketplace)**:
 - **Easy**: Version PHP mineure, paramètre PHP-FPM
-- **Moderate**: Version SMW, configuration réseau VM
-- **Hard**: Version MySQL (migration données nécessaire)
+- **Moderate**: Version Nextcloud, configuration réseau VM
+- **Hard**: Version MariaDB (migration données nécessaire)
 - **Irreversible**: Image OS base (rebuild complet VM Marketplace)
 
 ---
@@ -171,7 +171,7 @@ classification:
 | `tactical` | Implémentation spécifique, projet-wide | 6-18 mois | Team lead, Architect |
 | `operational` | Choix techniques locaux, component-level | 1-6 mois | Developer |
 
-**Aide décision (contexte smw-marketplace)**:
+**Aide décision (contexte nextcloud-marketplace)**:
 - **Strategic**: Choix Azure Marketplace vs autre canal distribution, base de données principale
 - **Tactical**: Architecture image VM, pipeline CI/CD, certification Marketplace
 - **Operational**: Script provisioning, version package, configuration PHP-FPM
@@ -188,14 +188,14 @@ classification:
 #### Cloud & Infrastructure
 - `azure`, `azure-marketplace`, `vm`, `bicep`, `terraform`, `packer`
 
-#### MediaWiki & SMW Stack
-- `mediawiki`, `semantic-mediawiki`, `mysql`, `apache`, `php-fpm`, `composer`
+#### Nextcloud Stack
+- `nextcloud`, `mariadb`, `nginx`, `php-fpm`, `redis`, `composer`
 
 #### Data & Storage
-- `mysql`, `sql`, `database`, `rest-api`
+- `mariadb`, `sql`, `database`, `rest-api`
 
 #### Security & Networking
-- `tls`, `ssl`, `nsg`, `azure-key-vault`, `apache`
+- `tls`, `ssl`, `nsg`, `azure-key-vault`, `nginx`
 
 #### DevOps & CI/CD
 - `github-actions`, `azure-devops`, `shell-script`, `packer`
@@ -210,8 +210,8 @@ classification:
     - "azure"
     - "vm"
     - "packer"
-    - "mediawiki"
-    - "mysql"
+    - "nextcloud"
+    - "mariadb"
 ```
 
 ---
@@ -241,9 +241,9 @@ classification:
     - "azure"
     - "vm"
     - "packer"
-    - "mediawiki"
+    - "nextcloud"
     - "php"
-    - "mysql"
+    - "mariadb"
 
 tags: ["azure-marketplace", "vm", "packer", "image"]
 stakeholders: ["@architecture-team", "@devops-team"]
@@ -271,9 +271,9 @@ grep -l 'impact: "critical"' docs/adr/*.md
 grep -l '"compliance"' docs/adr/*.md
 ```
 
-### Recherche par tech_area MediaWiki
+### Recherche par tech_area Nextcloud
 ```bash
-grep -l '"mediawiki"' docs/adr/*.md
+grep -l '"nextcloud"' docs/adr/*.md
 ```
 
 ---
@@ -298,15 +298,15 @@ Avant d'accepter un ADR, vérifier:
 
 **Pattern** : `XXX-CATÉGORIE-titre-kebab-case.md`
 
-### Exemples smw-marketplace
+### Exemples nextcloud-marketplace
 
 ```
 000-META-processus-creation-adr.md          # META: 000-099
-100-ARCH-smw-vm-offer-architecture.md       # ARCH: 100-199
+100-ARCH-nextcloud-vm-offer-architecture.md       # ARCH: 100-199
 200-INFRA-azure-vm-image-packer.md          # INFRA: 200-299
 300-SEC-tls-network-security-groups.md      # SEC: 300-399
-400-DATA-mysql-semantic-schema.md           # DATA: 400-499
-500-API-mediawiki-api-integration.md        # API: 500-599
+400-DATA-mariadb-nextcloud-schema.md           # DATA: 400-499
+500-API-nextcloud-api-integration.md        # API: 500-599
 600-DEVOPS-packer-ci-pipeline.md            # DEVOPS: 600-699
 700-TEST-marketplace-certification.md       # TEST: 700-799
 800-BIZ-azure-marketplace-offer-model.md    # BIZ: 800-899
@@ -345,11 +345,11 @@ ls -1 docs/adr/*.md | grep -oE "[A-Z]+" | sort | uniq -c
 
 **Évolution**: Cette taxonomie peut évoluer avec le projet. Si changement majeur, créer nouvel ADR et superseder ADR-000.
 
-**Contexte spécifique smw-marketplace**: La classification `compliance` est particulièrement importante dans ce projet en raison des exigences strictes de certification Microsoft Azure Marketplace et des obligations de licensing open source (MediaWiki et SMW sont sous licence GPL-2.0).
+**Contexte spécifique nextcloud-marketplace**: La classification `compliance` est particulièrement importante dans ce projet en raison des exigences strictes de certification Microsoft Azure Marketplace et des obligations de licensing open source (Nextcloud est sous licence AGPL-3.0).
 
 ---
 
 **Version**: 2.0  
 **Maintenu par**: @architecture-team  
 **Dernière mise à jour**: 2026-04-01  
-**Projet**: smw-marketplace
+**Projet**: nextcloud-marketplace

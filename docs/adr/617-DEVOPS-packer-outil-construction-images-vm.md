@@ -255,8 +255,8 @@ nextcloud-build:         ## Construit l'image VM et la publie dans la Compute Ga
 
 - **Licence BSL 1.1** : Packer ne peut pas être redistribué comme produit commercial dérivé ;
   l'usage pour construire des images destinées à Azure Marketplace est autorisé
-- **Temps de build** : 10 à 20 minutes par image complète (installation PHP, Apache, MySQL,
-  Nextcloud, MariaDB) ; le cache Blob Storage (ADR-616) réduit ce délai
+- **Temps de build** : 10 à 20 minutes par image complète (installation PHP, Nginx, MariaDB,
+ ; le cache Blob Storage (ADR-616) réduit ce délai
 - **Coût Azure** : une VM `Standard_D4s_v3` est provisionnée pendant la durée du build ;
   elle est facturée au prorata (typiquement < 0,20 € par build)
 

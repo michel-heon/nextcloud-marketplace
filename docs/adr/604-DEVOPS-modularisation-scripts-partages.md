@@ -272,7 +272,7 @@ get_latest_image_version() {
 
 # Vérifier que Nextcloud répond (endpoint HTTP)
 check_nextcloud_health() {
-    local vivo_url="${1:-http://localhost:${MEDIAWIKI_PORT:-80}/server}"
+    local vivo_url="${1:-http://localhost:${NEXTCLOUD_PORT:-80}}"
     wait_for_service "$vivo_url" 30 10
 }
 
@@ -290,26 +290,26 @@ check_nextcloud_status() {
     fi
 }
 
-# Vérifier que Apache est actif
-check_apache_status() {
-    local apache_port="${1:-${MEDIAWIKI_PORT:-80}}"
-    if curl -sf "http://localhost:$apache_port" &>/dev/null; then
-        log_success "Apache actif sur port $apache_port"
+# Vérifier que Nginx est actif
+check_nginx_status() {
+    local nginx_port="${1:-${NEXTCLOUD_PORT:-80}}"
+    if curl -sf "http://localhost:$nginx_port" &>/dev/null; then
+        log_success "Nginx actif sur port $nginx_port"
         return 0
     else
-        log_error "Apache non accessible sur port $apache_port"
+        log_error "Nginx non accessible sur port $nginx_port"
         return 1
     fi
 }
 
-# Vérifier que MySQL est actif
-check_mysql_status() {
-    local mysql_port="${1:-3306}"
-    if curl -sf "http://localhost:$mysql_port/" &>/dev/null; then
-        log_success "MySQL actif sur port $mysql_port"
+# Vérifier que MariaDB est actif
+check_mariadb_status() {
+    local mariadb_port="${1:-3306}"
+    if curl -sf "http://localhost:$mariadb_port/" &>/dev/null; then
+        log_success "MariaDB actif sur port $mariadb_port"
         return 0
     else
-        log_error "MySQL non accessible sur port $mysql_port"
+        log_error "MariaDB non accessible sur port $mariadb_port"
         return 1
     fi
 }
@@ -334,7 +334,7 @@ source "${SCRIPT_DIR}/lib/server.sh"
 source "${SCRIPT_DIR}/lib/azure.sh"
 
 # Variables avec valeurs par défaut
-MEDIAWIKI_URL="${MEDIAWIKI_URL:-http://localhost:${MEDIAWIKI_PORT:-80}/server}"
+NEXTCLOUD_URL="${NEXTCLOUD_URL:-http://localhost:${NEXTCLOUD_PORT:-80}}"
 VERBOSE="${VERBOSE:-false}"
 
 # Chargement configuration
@@ -346,8 +346,8 @@ log_section "Smoke Tests VM Nextcloud"
 check_required_commands curl az
 
 # Tests
-log_info "Test 1: Apache accessible"
-check_apache_status
+log_info "Test 1: Nginx accessible"
+check_nginx_status
 
 log_info "Test 2: Nextcloud répond"
 check_nextcloud_health "$NEXTCLOUD_URL"
@@ -355,8 +355,8 @@ check_nextcloud_health "$NEXTCLOUD_URL"
 log_info "Test 3: API Nextcloud"
 check_nextcloud_status
 
-log_info "Test 4: MySQL accessible"
-check_mysql_status
+log_info "Test 4: MariaDB accessible"
+check_mariadb_status
 
 log_success "Tous les smoke tests passés ✅"
 ```
@@ -378,9 +378,9 @@ scripts/
 │
 ├── nextcloud-install.sh                # Installation Nextcloud
 ├── nextcloud-configure.sh              # Configuration Nextcloud
-├── nginx-install.sh              # Installation Apache
-├── apache-configure.sh            # Configuration Apache
-├── mariadb-install.sh                # Installation MySQL
+├── nginx-install.sh              # Installation Nginx
+├── nginx-configure.sh            # Configuration Nginx
+├── mariadb-install.sh                # Installation MariaDB
 ├── nextcloud-install.sh         # Installation Nextcloud apps
 │
 ├── tls-configure.sh               # Configuration TLS

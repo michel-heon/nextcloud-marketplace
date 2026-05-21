@@ -38,7 +38,7 @@ superseded_by: null
 | **Impact** | 🟢 Faible (choix documenté dans la plage de compatibilité officielle) |
 | **Domaine** | DevOps / Build |
 | **Réversibilité** | 🟡 Modérée (changement de version PHP dans les scripts de provisioning) |
-| **Portée** | Version PHP dans `packer/provisioners/install-php.sh` et configuration Apache/PHP-FPM |
+| **Portée** | Version PHP dans `packer/provisioners/install-php.sh` et configuration Nginx/PHP-FPM |
 
 ## 🎯 Contexte
 

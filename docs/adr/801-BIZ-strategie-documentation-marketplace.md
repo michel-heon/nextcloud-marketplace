@@ -21,7 +21,7 @@ classification:
   tech_areas:
     - "azure"
     - "marketplace"
-    - "mediawiki"
+    - "nextcloud"
 
 tags: ["documentation", "azure-marketplace", "user-guide", "wiki", "partner-center", "content-guidelines"]
 stakeholders: ["@dev-team", "@architecture-team"]
@@ -54,11 +54,11 @@ effort: "medium"
 
 ## 🎯 Contexte
 
-L'offre SMW Knowledge Base est publiée sur Azure Marketplace à destination des **universités et centres de recherche** qui déploient la VM directement depuis le portail Azure. Ces utilisateurs :
+L'offre Nextcloud Hub est publiée sur Azure Marketplace à destination des **universités et centres de recherche** qui déploient la VM directement depuis le portail Azure. Ces utilisateurs :
 
-- **ne sont pas des développeurs** du projet smw-marketplace ;
-- n'ont pas accès au dépôt `michel-heon/smw-marketplace` ;
-- attendent une documentation **opérationnelle, en anglais**, axée sur la configuration et l'utilisation de MediaWiki ;
+- **ne sont pas des développeurs** du projet nextcloud-marketplace ;
+- n'ont pas accès au dépôt `michel-heon/nextcloud-marketplace` ;
+- attendent une documentation **opérationnelle, en anglais**, axée sur la configuration et l'utilisation de Nextcloud Hub ;
 - peuvent être des administrateurs systèmes, des responsables de plateformes de recherche, ou des informaticiens institutionnels.
 
 La documentation publiée est référencée **directement dans Partner Center** (champ *Support URL* et *Learn More URL*). Microsoft vérifie que ces URLs sont accessibles, pertinentes, et conformes aux directives de contenu lors de la certification de l'offre.
@@ -86,23 +86,23 @@ Deux dépôts GitHub constituent la documentation publique :
 
 Toute page wiki ou document doit répondre à la question :
 
-> *"Est-ce qu'un responsable informatique d'une université qui vient de déployer MediaWiki depuis Azure Marketplace en a besoin ?"*
+> *"Est-ce qu'un responsable informatique qui vient de déployer Nextcloud Hub depuis Azure Marketplace en a besoin ?"*
 
 Si la réponse est non → le contenu n'appartient pas à ces dépôts.
 
 **Est dans scope :**
 - Connexion SSH à la VM déployée
-- Vérification des services (nginx, Apache, MySQL)
-- Configuration de MediaWiki (namespace, admin, langues)
+- Vérification des services (nginx, mariadb, redis)
+- Configuration de Nextcloud (admin, stockage, apps)
 - Certificat TLS (Let's Encrypt automatique, renouvellement)
 - Chargement de données d'exemple
-- Exploration de l'interface MediaWiki
+- Exploration de l'interface Nextcloud Hub
 - Résolution de problèmes courants de déploiement
 - Contact support et ressources communautaires
 
 **Hors scope :**
 - Processus de build Packer
-- Structure du dépôt `smw-marketplace`
+- Structure du dépôt `nextcloud-marketplace`
 - ADRs et décisions d'architecture interne
 - Scripts de CI/CD, Makefile, pipeline de publication
 - Détails d'implémentation ARM/Bicep (au-delà des paramètres exposés)
@@ -124,7 +124,7 @@ Conforme au [Microsoft Writing Style Guide](https://learn.microsoft.com/en-us/st
 | Principe | Application concrète |
 |----------|---------------------|
 | **Friendly and conversational** | Vouvoiement évité → "you", phrases courtes |
-| **Action-oriented** | Titres en verbe d'action : *Connect to the VM*, *Configure MediaWiki* |
+| **Action-oriented** | Titres en verbe d'action : *Connect to the VM*, *Configure Nextcloud* |
 | **Task-based** | Chaque page = une tâche utilisateur complète |
 | **Show, don't just tell** | Exemples de commandes avec output attendu |
 | **Progressive disclosure** | Cas courant en premier, cas avancés en fin de page |
@@ -155,12 +155,12 @@ Brève introduction (1-2 phrases) : ce que l'utilisateur va accomplir.
 ### Règle 5 — Pas de liens vers le dépôt développeur
 
 Ne pas référencer :
-- `github.com/michel-heon/smw-marketplace`
+- `github.com/michel-heon/nextcloud-marketplace`
 - Des fichiers spécifiques du dépôt source (`.bicep`, `Makefile`, scripts Packer)
 
 Les seules références externes autorisées :
-- Documentation officielle MediaWiki/SMW (`www.mediawiki.org/wiki/Semantic_MediaWiki`)
-- SMW Project (`www.semantic-mediawiki.org`)
+- Documentation officielle Nextcloud (`docs.nextcloud.com`)
+- Nextcloud Apps (`apps.nextcloud.com`)
 - Documentation Azure (`learn.microsoft.com/azure`)
 - Issues GitHub sur `Cotechnoe/server-azure-marketplace-docs` (support utilisateur)
 
@@ -173,7 +173,7 @@ Les seules références externes autorisées :
 | Fichier anglais (canonique) | Fichier français (dérivé) |
 |-----------------------------|--------------------------|
 | `Deploying-from-Marketplace.md` | `Deploying-from-Marketplace-fr.md` |
-| `Configuring-MediaWiki.md` | `Configuring-MediaWiki-fr.md` |
+| `Configuring-Nextcloud.md` | `Configuring-Nextcloud-fr.md` |
 | `HTTPS-TLS-Certificate.md` | `HTTPS-TLS-Certificate-fr.md` |
 | *(idem pour toute nouvelle page)* | *(suffixe `-fr` systématique)* |
 
@@ -204,7 +204,7 @@ Les seules références externes autorisées :
 **Format canonique du lien tracké :**
 
 ```
-https://azuremarketplace.microsoft.com/en-US/marketplace/apps/cotechnoe.smw-knowledge-base
+https://azuremarketplace.microsoft.com/en-US/marketplace/apps/cotechnoe.nextcloud-server
   ?ocid=<id>&utm_source=<source>&utm_medium=<medium>&utm_campaign=<campaign>
 ```
 
@@ -212,10 +212,10 @@ https://azuremarketplace.microsoft.com/en-US/marketplace/apps/cotechnoe.smw-know
 
 | Contexte | `ocid` | `utm_source` | `utm_medium` | `utm_campaign` |
 |----------|--------|-------------|-------------|---------------|
-| Badge README.md (GitHub) | `smw_github_readme` | `github` | `referral` | `docs` |
-| Page wiki Home.md | `smw_wiki_home` | `wiki` | `referral` | `docs` |
-| Email support | `smw_support_email` | `email` | `email` | `support` |
-| Post LinkedIn | `smw_linkedin_launch` | `linkedin` | `social` | `v1_launch` |
+| Badge README.md (GitHub) | `nc_github_readme` | `github` | `referral` | `docs` |
+| Page wiki Home.md | `nc_wiki_home` | `wiki` | `referral` | `docs` |
+| Email support | `nc_support_email` | `email` | `email` | `support` |
+| Post LinkedIn | `nc_linkedin_launch` | `linkedin` | `social` | `v1_launch` |
 
 > **Règle** : Les pages wiki EN et FR doivent partager le **même** `ocid` — ne pas créer un ID par langue.
 
@@ -261,14 +261,14 @@ Structure cible des pages wiki :
 |-----------------------|------------------------|-------------|
 | `Home` | `Home-fr` | Index navigation, Quick Start, architecture simplifiée |
 | `SSH-Connection` | `SSH-Connection-fr` | Connexion SSH depuis Windows, Linux, macOS |
-| `Post-Deployment-Verification` | `Post-Deployment-Verification-fr` | Vérifier que MediaWiki est opérationnel |
+| `Post-Deployment-Verification` | `Post-Deployment-Verification-fr` | Vérifier que Nextcloud est opérationnel |
 | `HTTPS-TLS-Certificate` | `HTTPS-TLS-Certificate-fr` | Certificat Let's Encrypt, renouvellement, cert personnalisé |
-| `Configuring-MediaWiki` | `Configuring-MediaWiki-fr` | Namespace, admin, langues, paramètres runtime |
+| `Configuring-Nextcloud` | `Configuring-Nextcloud-fr` | Admin, stockage, apps, paramètres runtime |
 | `Deploying-from-Marketplace` | `Deploying-from-Marketplace-fr` | Déploiement depuis l'assistant Marketplace |
-| `Loading-Sample-Data` | `Loading-Sample-Data-fr` | Charger le dataset d'exemple MediaWiki |
-| `Exploring-MediaWiki` | `Exploring-MediaWiki-fr` | Navigation interface, recherche, profils, Site Admin |
+| `Loading-Sample-Data` | `Loading-Sample-Data-fr` | Charger les fichiers d'exemple Nextcloud |
+| `Exploring-Nextcloud` | `Exploring-Nextcloud-fr` | Navigation interface, partage, Talk, Office |
 | `Troubleshooting` | `Troubleshooting-fr` | Erreurs de déploiement et de runtime fréquentes |
-| `Support` | `Support-fr` | Contacts publisher, communauté MediaWiki, Azure support |
+| `Support` | `Support-fr` | Contacts publisher, communauté Nextcloud, Azure support |
 
 > **Note :** Chaque page (EN et FR) comporte un lien de navigation en haut de page vers son homologue dans l'autre langue, inséré en blockquote sous le titre H1 :
 > - Page EN → `> 🇫🇷 Cette page est également disponible en français : [[Page fr]]`
@@ -289,7 +289,7 @@ Référencé dans Partner Center comme **Support URL** (obligatoire, vérifié l
 | Nouvelle version image (ex. 1.0.11) | `Home` (badge version), `Post-Deployment-Verification` |
 | Nouveau paramètre ARM | `Home` (tableau paramètres), page concernée |
 | Changement comportement TLS | `HTTPS-TLS-Certificate`, `Troubleshooting` |
-| Nouvelle langue supportée | `Configuring-MediaWiki` |
+| Nouvelle langue supportée | `Configuring-Nextcloud` |
 | Problème récurrent signalé (Issue) | `Troubleshooting` |
 
 ### Check-list avant publication d'une nouvelle version Marketplace
@@ -298,7 +298,7 @@ Référencé dans Partner Center comme **Support URL** (obligatoire, vérifié l
 - [ ] Badge version dans `README.md` mis à jour
 - [ ] Section Release Notes dans `README.md` mise à jour
 - [ ] Toutes les commandes testées sur l'image courante
-- [ ] Aucune référence au dépôt développeur (`michel-heon/smw-marketplace`)
+- [ ] Aucune référence au dépôt développeur (`michel-heon/nextcloud-marketplace`)
 - [ ] Aucune commande de build Packer ou make dans les pages wiki
 - [ ] Support URL vérifiée accessible depuis un navigateur incognito
 - [ ] `Support.md` contient l'email publisher actuel
@@ -342,9 +342,9 @@ Ces contenus ont été observés ou sont à risque dans des itérations précéd
 
 **Contraintes acceptées :**
 - La documentation utilisateur doit être maintenue séparément du code source
-- Les changements techniques dans `smw-marketplace` impliquent une mise à jour des docs si l'expérience utilisateur change
+- Les changements techniques dans `nextcloud-marketplace` impliquent une mise à jour des docs si l'expérience utilisateur change
 - Pas de génération automatique de documentation depuis le code source (risque de fuite de contenu développeur)
 
 **Non-décisions (hors scope de cet ADR) :**
 - Localisation vers d'autres langues (allemand, espagnol, portugais…) — à évaluer en ADR distinct si la demande le justifie
-- Documentation in-app MediaWiki (configuration via interface web)
+- Documentation in-app Nextcloud (configuration via interface web)

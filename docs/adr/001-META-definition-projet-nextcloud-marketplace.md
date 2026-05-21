@@ -326,4 +326,4 @@ Le lien Terms of Use dans Partner Center pointera vers : `https://www.gnu.org/li
 
 | Date | Auteur | Changement | Raison |
 |------|--------|------------|--------|
-| 2026-05-21 | @architecture-team | Création ADR-001 | Formalisation de la définition de projet nextcloud-marketplace (adapté depuis smw-marketplace) |
+| 2026-05-21 | @architecture-team | Création ADR-001 | Formalisation de la définition de projet nextcloud-marketplace (adapté depuis nextcloud-marketplace) |

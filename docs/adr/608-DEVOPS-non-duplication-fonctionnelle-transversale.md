@@ -150,7 +150,7 @@ Toute fonction présente dans 2+ scripts est extraite :
 | `check_env_file` | Vérification fichier `.env` | À créer |
 | `load_env_file` | `source` sécurisé d'un fichier env | À créer |
 | `assert_command_exists` | Valider présence d'un outil (az, docker, psql…) | À créer |
-| `wait_for_service` | Attendre disponibilité service (MySQL, MySQL, Apache) | À créer |
+| `wait_for_service` | Attendre disponibilité service (Nginx, MariaDB, Redis) | À créer |
 
 #### Anti-patterns Bash à éviter
 

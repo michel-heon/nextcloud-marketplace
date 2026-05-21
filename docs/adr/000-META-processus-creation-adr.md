@@ -416,7 +416,7 @@ Référence: #issue (si applicable)"
 - [Michael Nygard - Documenting Architecture Decisions](https://cognitect.com/blog/2011/11/15/documenting-architecture-decisions)
 - [Azure Well-Architected Framework - ADRs](https://learn.microsoft.com/en-us/azure/well-architected/architect-role/architecture-decision-record)
 - [Microsoft Azure Marketplace VM Offer Requirements](https://learn.microsoft.com/en-us/azure/marketplace/azure-vm-offer-setup)
-- [Semantic MediaWiki](https://www.semantic-mediawiki.org/)
+- [Nextcloud](https://nextcloud.com/)
 
 ---
 
@@ -424,4 +424,4 @@ Référence: #issue (si applicable)"
 
 | Date | Auteur | Changement | Raison |
 |------|--------|------------|--------|
-| 2026-02-21 | @architecture-team | Création initiale pour smw-marketplace | Import et adaptation depuis og-nore |
+| 2026-02-21 | @architecture-team | Création initiale pour nextcloud-marketplace | Import et adaptation depuis og-nore |

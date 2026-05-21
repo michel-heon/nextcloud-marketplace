@@ -301,12 +301,12 @@ graph TD
 
 ### Procédure lors d'un Version Bump (ADR-607)
 
-Lors de la mise à jour d'une version de package (ex : Apache 2.4.x) :
+Lors de la mise à jour d'une version de package (ex : Nginx) :
 
 ```bash
-# 1. Mettre à jour APACHE_VERSION dans azure.env et les provisioners
+# 1. Mettre à jour NGINX_VERSION dans azure.env et les provisioners
 # 2. Uploader la nouvelle version dans le blob
-make storage-upload APACHE_VERSION=10.1.35
+make storage-upload NGINX_VERSION=1.27.0
 # 3. Vérifier la présence
 make storage-verify
 # 4. Lancer le build Packer

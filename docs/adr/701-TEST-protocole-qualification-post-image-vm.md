@@ -22,8 +22,8 @@ classification:
     - "azure"
     - "bash"
     - "playwright"
-    - "mediawiki"
-    - "semantic-mediawiki"
+    - "nextcloud"
+    - "nginx"
 
 tags: ["qa", "qualification", "acceptance-criteria", "non-regression", "oracle", "post-image", "certification", "smoke-test", "e2e"]
 stakeholders: ["@qa-team", "@devops-team", "@architecture-team"]
@@ -141,9 +141,9 @@ l'**oracle principal** de cette qualification :
 | Test | Critère d'acceptation | Référence |
 |------|----------------------|-----------|
 | Connectivité HTTP/HTTPS | Réponse 200 ou redirection valide (pas d'erreur TLS) | T-BROWSER-00 |
-| Page principale MediaWiki | Titre `Main_Page` présent, contenu SMW chargé | T-BROWSER-01 |
+| Page principale Nextcloud | Dashboard Nextcloud chargé, `status.php` répond | T-BROWSER-01 |
 | Formulaire de connexion | Page login accessible et fonctionnelle | T-BROWSER-02 |
-| Extension SMW active | Page spéciale SMW accessible et listée | T-BROWSER-03 |
+| App Nextcloud active | Apps activées listées via `/ocs/v1.php/apps` | T-BROWSER-03 |
 
 **Résultat attendu** : 4/4 tests E2E verts → qualification niveau 2 passée.
 
@@ -151,9 +151,9 @@ l'**oracle principal** de cette qualification :
 
 ```
 Échec T-BROWSER-00 (HTTPS) → problème TLS ou configuration serveur web
-Échec T-BROWSER-01 (Main_Page) → problème MediaWiki ou base de données
+Échec T-BROWSER-01 (Dashboard) → problème Nextcloud ou base de données
 Échec T-BROWSER-02 (login) → problème d'authentification ou session PHP
-Échec T-BROWSER-03 (SMW) → extension SMW non installée ou désactivée
+Échec T-BROWSER-03 (Apps) → apps Nextcloud non installées ou désactivées
 ```
 
 Chaque échec est un symptôme traçable vers une couche de provisioner spécifique
@@ -172,7 +172,7 @@ Marketplace (ADR-800). Ce niveau requiert une checklist formelle.
 | **Pare-feu** | UFW actif, ports 22 et 443 uniquement ouverts | `ufw status` |
 | **TLS** | Certificat valide, TLS 1.2+ uniquement | `openssl s_client` |
 | **Credentials** | Aucun mot de passe en clair dans l'image | Scan scripts + image |
-| **Idempotence firstboot** | Re-exécution de `smw-firstboot` ne casse pas le service | Re-run manuel + tests |
+| **Idempotence firstboot** | Re-exécution de `nc-firstboot` ne casse pas le service | Re-run manuel + tests |
 | **Généralisation** | Image dépersonnalisée (`waagent -deprovision`) | Vérif. `/etc/waagent.conf` |
 | **AMAT** | Score de certification Marketplace ≥ seuil requis | Azure AMAT tool |
 

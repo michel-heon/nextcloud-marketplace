@@ -43,7 +43,7 @@ Le projet nextcloud-marketplace comprend des scripts d'automatisation pour :
 
 Sans convention de nommage claire :
 - **Difficulté de découverte** : Les développeurs ne trouvent pas le script voulu
-- **Inconsistance** : Styles mélangés (`deploy.sh`, `nextcloud-install.sh`, `apache_install.sh`)
+- **Inconsistance** : Styles mélangés (`deploy.sh`, `nextcloud-install.sh`, `nginx_install.sh`)
 - **Maintenance complexe** : Difficile de comprendre rapidement la fonction d'un script
 
 ## Décision
@@ -82,10 +82,10 @@ Adopter une nomenclature standardisée pour **tous les scripts d'automatisation*
    nextcloud-install.sh             # Installation Nextcloud
    nextcloud-configure.sh           # Configuration post-installation
    nextcloud-start.sh               # Démarrage services Nextcloud
-   nginx-install.sh             # Installation et configuration Apache
-   apache-configure.sh           # Configuration Apache (apache2.conf, etc.))
-   mariadb-install.sh              # Installation MySQL
-   mysql-configure.sh            # Configuration MySQL (bases, schémas)
+   nginx-install.sh             # Installation et configuration Nginx
+   nginx-configure.sh            # Configuration Nginx (nginx.conf, sites, etc.)
+   mariadb-install.sh              # Installation MariaDB
+   mariadb-configure.sh          # Configuration MariaDB (bases, schémas)
    nextcloud-install.sh                # Installation Nextcloud apps
    nextcloud-configure.sh              # Configuration Nextcloud
    ```
@@ -123,7 +123,7 @@ Adopter une nomenclature standardisée pour **tous les scripts d'automatisation*
    ```bash
    # Composant-action cohérent
    nextcloud-install.sh              # Nextcloud core
-   mariadb-install.sh               # MySQL spécifiquement
+   mariadb-install.sh               # MariaDB spécifiquement
    nextcloud-reindex.sh                  # Réindexation Nextcloud
    nextcloud-extensions-install.sh       # Apps Nextcloud additionnelles
    jena-fuseki-install.sh       # Serveur Fuseki SPARQL
@@ -142,8 +142,8 @@ Adopter une nomenclature standardisée pour **tous les scripts d'automatisation*
    # Targets composants (object-action)
    nextcloud-install           # Installe Nextcloud
    nextcloud-configure         # Configure Nextcloud
-   apache-install             # Installe Apache
-   mysql-install               # Installe MySQL
+   nginx-install              # Installe Nginx
+   mariadb-install            # Installe MariaDB
    tls-configure          # Configure TLS
    vm-build               # Build image VM Packer
    vm-validate            # Valide image
@@ -164,9 +164,9 @@ Adopter une nomenclature standardisée pour **tous les scripts d'automatisation*
    ├── # Nextcloud Stack
    ├── nextcloud-install.sh             # Installation Nextcloud
    ├── nextcloud-configure.sh                  # Configuration Nextcloud
-   ├── mariadb-install.sh                            # MySQL
-   ├── nginx-install.sh                           # Apache
-   ├── apache-configure.sh                         # Configuration Apache
+   ├── mariadb-install.sh                            # MariaDB
+   ├── nginx-install.sh                           # Nginx
+   ├── nginx-configure.sh                          # Configuration Nginx
    ├── nextcloud-install.sh                              # Nextcloud apps
    ├── nextcloud-configure.sh                            # Configuration Nextcloud
    │
@@ -188,7 +188,7 @@ Adopter une nomenclature standardisée pour **tous les scripts d'automatisation*
 **Avant (❌ non-standard) :**
 ```bash
 scripts/nextcloud-install.sh           # camelCase
-scripts/install_apache.sh      # underscore
+scripts/install_nginx.sh      # underscore
 scripts/DeployVM.sh            # Majuscule
 scripts/setup.sh               # Nom générique
 scripts/azure-deploy-vm.sh     # Action avant objet
