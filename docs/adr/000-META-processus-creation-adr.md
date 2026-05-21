@@ -24,7 +24,7 @@ classification:
     - "git"
 
 tags: ["process", "documentation", "meta-adr", "governance"]
-stakeholders: ["@architecture-team", "@dev-team", "@smw-marketplace"]
+stakeholders: ["@architecture-team", "@dev-team", "@nextcloud-marketplace"]
 effort: "low"
 ---
 
@@ -65,7 +65,7 @@ effort: "low"
 
 ## Contexte
 
-Le projet **smw-marketplace** vise à industrialiser et publier sur Microsoft Azure Marketplace une offre de type Virtual Machine (VM) intégrant la solution open source **Semantic MediaWiki** (SMW) sur Azure. Cette solution combine MediaWiki, PHP, Apache et MySQL, et est destinée aux organisations souhaitant déployer un wiki sémantique enterprise dans leur propre abonnement Azure.
+Le projet **nextcloud-marketplace** vise à industrialiser et publier sur Microsoft Azure Marketplace une offre de type Virtual Machine (VM) intégrant la solution open source **Nextcloud Hub** sur Azure. Cette solution combine Nextcloud, PHP, Nginx et MariaDB, et est destinée aux organisations souhaitant déployer un serveur de collaboration et de stockage cloud dans leur propre abonnement Azure.
 
 Ce projet nécessite une documentation structurée des décisions architecturales importantes. Les Architecture Decision Records (ADR) sont un moyen éprouvé de capturer le **pourquoi** derrière les décisions techniques, facilitant :
 
@@ -85,7 +85,7 @@ Sans processus formalisé, les décisions restent implicites, rendant difficile 
 
 ## Décision
 
-Adopter un processus formalisé de création et gestion des ADR basé sur le modèle Michael Nygard, adapté pour smw-marketplace.
+Adopter un processus formalisé de création et gestion des ADR basé sur le modèle Michael Nygard, adapté pour nextcloud-marketplace.
 
 ### Structure des ADR
 
@@ -157,11 +157,11 @@ effort: "medium"
 **Exemples propres au projet**:
 ```
 000-META-processus-creation-adr.md          # Méta-ADR
-100-ARCH-architecture-smw-vm-offer.md       # Architecture MediaWiki/SMW
+100-ARCH-architecture-nextcloud-vm-offer.md # Architecture Nextcloud VM
 200-INFRA-azure-vm-image-build.md           # Image VM Azure
 300-SEC-tls-network-security.md             # Sécurité TLS et réseau
-400-DATA-smw-semantic-schema.md             # Données sémantiques SMW
-500-API-mediawiki-api-integration.md        # Intégration MediaWiki API
+400-DATA-nextcloud-data-storage.md          # Données et stockage Nextcloud
+500-API-nextcloud-api-integration.md        # Intégration Nextcloud API/WebDAV
 600-DEVOPS-packer-vm-automation.md          # Automatisation Packer
 700-TEST-marketplace-validation.md          # Validation Marketplace
 800-BIZ-azure-marketplace-offer.md          # Offre Azure Marketplace
@@ -174,11 +174,11 @@ effort: "medium"
 | Préfixe | Plage | Domaine | Usage |
 |---------|-------|---------|-------|
 | `META` | 000-099 | Méta-processus | ADRs sur le processus ADR lui-même |
-| `ARCH` | 100-199 | Architecture | Design patterns, principes architecturaux SMW/MediaWiki |
+| `ARCH` | 100-199 | Architecture | Design patterns, principes architecturaux Nextcloud |
 | `INFRA` | 200-299 | Infrastructure | Azure VM, IaC, Packer, déploiement |
 | `SEC` | 300-399 | Sécurité | TLS, réseau, RBAC, conformité Marketplace |
-| `DATA` | 400-499 | Données | Données sémantiques SMW, propriétés, ontologies |
-| `API` | 500-599 | APIs | Intégrations MediaWiki API, REST, monitoring |
+| `DATA` | 400-499 | Données | Données Nextcloud, stockage fichiers, base de données |
+| `API` | 500-599 | APIs | Intégrations Nextcloud API, WebDAV, REST, monitoring |
 | `DEVOPS` | 600-699 | DevOps | CI/CD, scripts provisioning, pipelines |
 | `TEST` | 700-799 | Tests & QA | Validation Marketplace, tests VM, conformité |
 | `BIZ` | 800-899 | Business | Offre Marketplace, licensing open source, tarification |
@@ -212,11 +212,11 @@ Chaque ADR doit inclure une classification complète dans le frontmatter YAML:
 - `deprecated` / `superseded` (pour ADRs obsolètes)
 
 #### 2. **Domain** (Domaine architectural)
-- `architecture`: Décisions architecturales SMW / MediaWiki / PHP / MySQL
+- `architecture`: Décisions architecturales Nextcloud / PHP / MariaDB / Nginx
 - `infrastructure`: Azure VM, Packer, Bicep, déploiement
 - `security`: TLS, réseau, RBAC, conformité Microsoft Marketplace
-- `data`: Données sémantiques SMW, propriétés, ontologies MediaWiki
-- `api`: Intégrations MediaWiki API, REST, monitoring
+- `data`: Données Nextcloud, stockage fichiers, base de données, cache Redis
+- `api`: Intégrations Nextcloud API, WebDAV, REST, monitoring
 - `devops`: CI/CD, scripts provisioning, Packer, automatisation
 - `test`: Validation Marketplace, tests VM, smoke tests
 - `business`: Offre Marketplace, licensing open source, tarification
@@ -249,7 +249,7 @@ Chaque ADR doit inclure une classification complète dans le frontmatter YAML:
 - `operational`: Choix techniques locaux, component-level
 
 #### 7. **Tech Areas** (Domaines technologiques)
-- Exemples pertinents : `php`, `mediawiki`, `semantic-mediawiki`, `mysql`, `apache`, `azure`, `vm`, `packer`, `tls`, `marketplace`, `bash`, `python`
+- Exemples pertinents : `php`, `nextcloud`, `mariadb`, `nginx`, `redis`, `azure`, `vm`, `packer`, `tls`, `marketplace`, `bash`, `python`
 
 ### Processus de Création
 
@@ -257,7 +257,7 @@ Chaque ADR doit inclure une classification complète dans le frontmatter YAML:
 
 Un ADR est requis quand :
 
-- ✅ Décision architecturale significative (SMW, image VM, Marketplace)
+- ✅ Décision architecturale significative (Nextcloud, image VM, Marketplace)
 - ✅ Choix ayant des conséquences à long terme
 - ✅ Alternatives multiples existantes nécessitant justification
 - ✅ Décision affectant plusieurs composants/équipes

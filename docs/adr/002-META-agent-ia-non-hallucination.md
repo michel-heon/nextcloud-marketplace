@@ -81,7 +81,8 @@ primaire officielle consultée pendant la session :
 
 | Type d'information | Source primaire acceptable |
 |--------------------|---------------------------|
-| Versions de logiciels (PHP, MediaWiki, SMW…) | Site officiel du projet, releases GitHub |
+| Versions de logiciels (PHP, Nextcloud, MariaDB…) | Site officiel du projet, releases GitHub |
+| Documentation Nextcloud (occ, config.php, apps) | `nextcloud.com`, `docs.nextcloud.com`, `github.com/nextcloud/server` |
 | Paramètres de configuration Packer/Azure | `developer.hashicorp.com`, `learn.microsoft.com` |
 | Commandes CLI (`az`, `packer`, `waagent`…) | Documentation officielle de l'outil |
 | Exigences Azure Marketplace | `learn.microsoft.com/azure/marketplace` |
@@ -188,7 +189,7 @@ Tout contenu IA reviewé par deux personnes avant intégration.
 | Ressource | URL |
 |-----------|-----|
 | ADR-000 — Processus de création des ADRs | [./000-META-processus-creation-adr.md](./000-META-processus-creation-adr.md) |
-| ADR-001 — Définition du projet smw-marketplace | [./001-META-definition-projet-smw-marketplace.md](./001-META-definition-projet-smw-marketplace.md) |
+| ADR-001 — Définition du projet nextcloud-marketplace | [./001-META-definition-projet-nextcloud-marketplace.md](./001-META-definition-projet-nextcloud-marketplace.md) |
 | ADR-603 — Git workflow et stratégie de versioning | [./603-DEVOPS-git-workflow-et-strategie-versioning.md](./603-DEVOPS-git-workflow-et-strategie-versioning.md) |
 | Anthropic — Limitations connues des LLMs | <https://www.anthropic.com/research> |
 | "Hallucination in Large Language Models" (survey) | Littérature académique — Zhang et al., 2023 |
