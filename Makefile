@@ -54,7 +54,11 @@ BOLD  := \033[1m
 
 .PHONY: help init validate image-build image-build-debug deploy tf-init tf-plan tf-apply \
         test lint clean sysprep env-check azure-login \
-        infra-rg infra-gallery infra-image-def infra-create
+        infra-rg infra-gallery infra-image-def infra-create \
+        storage-create storage-upload storage-verify storage-list storage-urls \
+        playwright-install \
+        vm-test-create vm-test-delete vm-test-ssh \
+        vm-test-smoke vm-test-service vm-test-e2e vm-test-cert vm-test-all
 
 help: ## Show available targets
 	@echo ""
@@ -128,6 +132,7 @@ validate: ## Validate Packer templates (no build)
 		-var "gallery_image_name=$(GALLERY_IMAGE_NAME)" \
 		-var "image_version=$(IMAGE_VERSION)" \
 		-var "environment=$(ENVIRONMENT)" \
+		-var "blob_storage_base_url=$(BLOB_STORAGE_BASE_URL)" \
 		.
 
 image-build: env-check validate ## Build the Nextcloud VM image
@@ -140,6 +145,7 @@ image-build: env-check validate ## Build the Nextcloud VM image
 		-var "gallery_image_name=$(GALLERY_IMAGE_NAME)" \
 		-var "image_version=$(IMAGE_VERSION)" \
 		-var "environment=$(ENVIRONMENT)" \
+		-var "blob_storage_base_url=$(BLOB_STORAGE_BASE_URL)" \
 		.
 
 image-build-debug: env-check ## Build the Nextcloud VM image (debug mode)
@@ -152,8 +158,28 @@ image-build-debug: env-check ## Build the Nextcloud VM image (debug mode)
 		-var "gallery_image_name=$(GALLERY_IMAGE_NAME)" \
 		-var "image_version=$(IMAGE_VERSION)" \
 		-var "environment=$(ENVIRONMENT)" \
+		-var "blob_storage_base_url=$(BLOB_STORAGE_BASE_URL)" \
 		-on-error=ask \
 		.
+
+# ------------------------------------------------------------
+# Blob Storage Cache (ADR-616)
+# ------------------------------------------------------------
+
+storage-create: env-check ## Create Azure Blob Storage account and container (idempotent)
+	@bash packer/nextcloud/scripts/storage-provision.sh create
+
+storage-upload: env-check ## Upload Nextcloud packages to blob cache
+	@bash packer/nextcloud/scripts/storage-provision.sh upload
+
+storage-verify: env-check ## Verify required blobs are publicly accessible
+	@bash packer/nextcloud/scripts/storage-provision.sh verify
+
+storage-list: env-check ## List blobs present in the cache container
+	@bash packer/nextcloud/scripts/storage-provision.sh list
+
+storage-urls: ## Show public URLs of cached packages
+	@bash packer/nextcloud/scripts/storage-provision.sh urls
 
 # ------------------------------------------------------------
 # Terraform
@@ -180,8 +206,24 @@ lint: ## Lint shell scripts
 	@find packer/nextcloud/scripts -name "*.sh" -exec shellcheck {} \;
 	@echo "Shellcheck passed."
 
-test: ## Run post-deployment smoke tests
+gallery-check: env-check ## Verify IMAGE_VERSION is published in the Compute Gallery
+	@az sig image-version show \
+		--resource-group $(GALLERY_RESOURCE_GROUP) \
+		--gallery-name $(GALLERY_NAME) \
+		--gallery-image-definition $(GALLERY_IMAGE_NAME) \
+		--gallery-image-version $(IMAGE_VERSION) \
+		--query "{version:name, state:provisioningState, replicationState:publishingProfile.replicationMode}" \
+		-o json
+
+test: ## Run post-deployment smoke tests (HTTP/HTTPS — requires NEXTCLOUD_HOST=<ip>)
 	@bash tests/test-deployment.sh
+
+vm-check: ## Run service checks inside the VM via SSH (requires VM_SSH=user@host)
+	@if [[ -z "$${VM_SSH:-}" ]]; then \
+		echo "[ERROR] VM_SSH non défini. Usage : make vm-check VM_SSH=azureuser@<ip>"; \
+		exit 1; \
+	fi
+	@ssh -o StrictHostKeyChecking=no "$${VM_SSH}" 'sudo bash -s' < tests/check-services.sh
 
 # ------------------------------------------------------------
 # Utilities
@@ -195,3 +237,34 @@ clean: ## Remove generated artifacts
 	@find . -name "*.pkrlog" -delete
 	@find . -name ".terraform" -type d -exec rm -rf {} + 2>/dev/null || true
 	@echo "Clean done."
+
+# ------------------------------------------------------------
+# Image Testing (ADR-700 / ADR-701)
+# ------------------------------------------------------------
+
+playwright-install: ## Installer Playwright et les navigateurs (une seule fois)
+	npm install
+	npx playwright install --with-deps firefox
+
+vm-test-create: env-check ## Créer une VM de test depuis la gallery (IMAGE_VERSION)
+	@bash image-tests/vm-create.sh
+
+vm-test-delete: ## Supprimer la VM de test et son resource group
+	@bash image-tests/vm-delete.sh
+
+vm-test-ssh: ## Ouvrir une session SSH vers la VM de test
+	@bash image-tests/vm-ssh.sh
+
+vm-test-smoke: ## Tests niveau 1 — smoke (VM active, SSH, firstboot)
+	@bash image-tests/smoke-test.sh
+
+vm-test-service: ## Tests niveau 2 — services (systemd, Nextcloud, DB)
+	@bash image-tests/service-check.sh
+
+vm-test-e2e: ## Tests niveau 2 — E2E Playwright (navigateur Firefox)
+	@npx playwright test --config image-tests/playwright/playwright.config.js
+
+vm-test-cert: ## Tests niveau 3 — conformité Azure Marketplace
+	@bash image-tests/marketplace-cert.sh
+
+vm-test-all: vm-test-smoke vm-test-service vm-test-e2e vm-test-cert ## Lancer tous les niveaux de test

@@ -1,0 +1,15 @@
+{
+  "name": "nextcloud-marketplace-tests",
+  "description": "Tests E2E Playwright pour la qualification de l'image VM Nextcloud Marketplace",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test:e2e": "playwright test",
+    "test:nextcloud": "playwright test image-tests/playwright/nextcloud.spec.js",
+    "test:marketplace": "playwright test image-tests/playwright/marketplace.spec.js",
+    "playwright:install": "playwright install --with-deps firefox chromium"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.44.0"
+  }
+}

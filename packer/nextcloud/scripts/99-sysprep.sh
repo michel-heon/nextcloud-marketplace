@@ -25,7 +25,7 @@ log_info "Removing temp files"
 rm -rf /tmp/* /var/tmp/*
 
 log_info "Clearing logs"
-find /var/log -type f -name "*.log" -exec truncate --size=0 {} \;
+find /var/log -type f -name "*.log" -writable -exec truncate --size=0 {} \;
 find /var/log -type f -name "*.gz" -delete
 journalctl --rotate
 journalctl --vacuum-time=1s

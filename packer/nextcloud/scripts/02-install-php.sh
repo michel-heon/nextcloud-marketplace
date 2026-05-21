@@ -46,6 +46,9 @@ else
   log_info "Enabling PHP-FPM on boot"
   systemctl enable "php${PHP_VERSION}-fpm"
 
+  log_info "Pinning PHP CLI to ${PHP_VERSION} (metapackages may pull newer CLI)"
+  update-alternatives --set php "/usr/bin/php${PHP_VERSION}"
+
   log_info "PHP version: $(php -r 'echo PHP_VERSION;')"
 fi
 

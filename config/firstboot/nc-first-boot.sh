@@ -89,6 +89,10 @@ ${OCC} background:cron
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] Starting services"
 systemctl start nextcloud-cron.timer
 
+# --- Cleanup ephemeral credentials ---
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] Removing ephemeral credentials file"
+shred -u "${CONFIG_ENV}" 2>/dev/null || rm -f "${CONFIG_ENV}"
+
 echo "============================================================"
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] Nextcloud first-boot setup COMPLETE"
 echo "============================================================"

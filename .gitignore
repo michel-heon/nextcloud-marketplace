@@ -52,3 +52,13 @@ Thumbs.db
 *.log
 tmp/
 temp/
+
+# ------------------------------------------------------------
+# Image Testing (ADR-700 / ADR-701)
+# ------------------------------------------------------------
+.image-test-state
+image-tests/env/.env.test
+playwright-report/
+test-results/
+.test-reports/
+node_modules/

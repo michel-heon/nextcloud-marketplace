@@ -21,3 +21,6 @@ environment            = "dev"
 nc_version             = "33.0.3"
 php_version            = "8.3"
 postgresql_version     = "16"
+
+# Blob Storage Cache (ADR-616) — laisser vide pour désactiver (fallback source directe)
+blob_storage_base_url  = ""

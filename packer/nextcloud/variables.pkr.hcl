@@ -99,3 +99,13 @@ variable "postgresql_version" {
   description = "PostgreSQL major version to install (e.g. 16)"
   default     = "16"
 }
+
+# ------------------------------------------------------------
+# Blob Storage Cache (ADR-616)
+# ------------------------------------------------------------
+variable "blob_storage_base_url" {
+  type        = string
+  description = "Azure Blob Storage base URL for package cache — empty string disables blob cache (blob-first, source-fallback)"
+  default     = ""
+  sensitive   = false
+}

@@ -136,7 +136,7 @@ Ou avec une version d'image spécifique :
 make image-build IMAGE_VERSION=1.0.0
 ```
 
-**Durée estimée** : 20–35 minutes selon la région et la taille de VM.
+**Durée estimée** : ~15–20 minutes (`Standard_D4s_v3`, `canadacentral`).
 
 À la fin du build, Packer génère un `packer-manifest.json` dans `packer/nextcloud/`
 avec les métadonnées de l'image publiée.
@@ -199,6 +199,104 @@ la VM accessible en SSH pour investigation. Voir
 
 ---
 
+## Critères de succès
+
+### Succès du build Packer
+
+Le build est considéré réussi lorsque Packer affiche un exit code 0 et la ligne :
+
+```
+Build 'nextcloud.azure-arm.nextcloud' finished after X minutes Y seconds.
+```
+
+Vérifier que la version cible est bien publiée dans la Compute Gallery :
+
+```bash
+make gallery-check
+```
+
+Résultat attendu (JSON) :
+
+```json
+{
+  "version": "0.1.2",
+  "state": "Succeeded",
+  "replicationState": null
+}
+```
+
+Le fichier `packer/nextcloud/packer-manifest.json` est également généré avec les
+métadonnées de l'artefact publié.
+
+### Vérification post-déploiement (VM de test)
+
+Déployer une VM de test depuis la version d'image publiée, puis lancer les deux
+suites de vérification gérées par le Makefile.
+
+#### Tests HTTP/HTTPS (depuis le poste de développement)
+
+```bash
+NEXTCLOUD_HOST=<ip_ou_fqdn> make test
+```
+
+Vérifie : redirection HTTP → HTTPS, code 200 sur `/login`, `status.php`
+(`installed=true`, `maintenance=false`), redirections DAV, en-têtes de sécurité.
+
+Résultat attendu : `X passed, 0 failed`.
+
+#### Vérification des services internes (via SSH dans la VM)
+
+```bash
+make vm-check VM_SSH=azureuser@<ip>
+```
+
+Le script `tests/check-services.sh` est envoyé à la VM via SSH et vérifie :
+
+| Composant | Critère |
+|-----------|---------|
+| OS | Ubuntu 24.04 LTS |
+| Services | `nginx`, `php8.3-fpm`, `postgresql`, `redis-server` → `active` |
+| PHP CLI | 8.3.x |
+| PHP-FPM | 8.3.x |
+| PostgreSQL | 16.x + base `nextcloud` présente |
+| Redis | `PONG` |
+| Nextcloud | `version.php` présent, propriétaire `www-data:www-data` |
+| UFW | actif |
+| fail2ban | ≥ 1 jail actif |
+
+Résultat attendu : `X passé(s), 0 échoué(s)`.
+
+---
+
+## Problèmes connus
+
+### PHP 8.5 CLI installé par des méta-paquets transitifs
+
+Les paquets `php-imagick`, `php-redis` et `php-smbclient` tirent `php8.5-cli` comme
+dépendance transitive (méta-paquet sans version fixe). Le script `02-install-php.sh`
+corrige cela automatiquement après l'installation :
+
+```bash
+update-alternatives --set php "/usr/bin/php${PHP_VERSION}"
+```
+
+Vérification : `php --version` → `8.3.x`. PHP-FPM n'est pas affecté.
+
+### Avertissement non-fatal — truncate sur le log PostgreSQL (étape 99)
+
+Le fichier `/var/log/postgresql/postgresql-16-main.log` est détenu par `postgres:adm`
+(mode 640) et ne peut pas être tronqué par l'utilisateur Packer. Le build réussit
+malgré cet avertissement :
+
+```
+truncate: cannot open '/var/log/postgresql/postgresql-16-main.log' for writing: Permission denied
+```
+
+Impact : le log PG subsiste dans l'image finale (contenu inoffensif). Correction
+prévue dans la prochaine version.
+
+---
+
 ## Mettre à jour les versions logicielles
 
 ### Nextcloud
@@ -254,11 +352,12 @@ par le script `cloud-init`. Ce comportement est normal pendant le build.
 AuthorizationFailed: does not have authorization to perform action
 ```
 
-Le service principal doit avoir le rôle `Contributor` à la fois sur le resource group
-de build et sur le resource group de la gallery. Vérifier avec :
+L'identité connectée via `az login` doit avoir le rôle `Contributor` à la fois sur le
+resource group de build et sur le resource group de la gallery. Vérifier avec :
 
 ```bash
-az role assignment list --assignee <CLIENT_ID> --output table
+az ad signed-in-user show --query id -o tsv | xargs -I{} \
+  az role assignment list --assignee {} --output table
 ```
 
 ---

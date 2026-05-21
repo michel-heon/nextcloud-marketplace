@@ -76,20 +76,20 @@ build {
   # 00 — System preparation
   provisioner "shell" {
     script           = "${path.root}/scripts/00-system-prepare.sh"
-    execute_command  = "sudo -S bash '{{ .Path }}'"
+    execute_command  = "sudo -S env {{ .Vars }} bash '{{ .Path }}'"
     expect_disconnect = false
   }
 
   # 01 — Install NGINX
   provisioner "shell" {
     script           = "${path.root}/scripts/01-install-nginx.sh"
-    execute_command  = "sudo -S bash '{{ .Path }}'"
+    execute_command  = "sudo -S env {{ .Vars }} bash '{{ .Path }}'"
   }
 
   # 02 — Install PHP-FPM
   provisioner "shell" {
     script           = "${path.root}/scripts/02-install-php.sh"
-    execute_command  = "sudo -S bash '{{ .Path }}'"
+    execute_command  = "sudo -S env {{ .Vars }} bash '{{ .Path }}'"
     environment_vars = [
       "PHP_VERSION=${var.php_version}",
     ]
@@ -98,7 +98,7 @@ build {
   # 03 — Install PostgreSQL
   provisioner "shell" {
     script           = "${path.root}/scripts/03-install-postgresql.sh"
-    execute_command  = "sudo -S bash '{{ .Path }}'"
+    execute_command  = "sudo -S env {{ .Vars }} bash '{{ .Path }}'"
     environment_vars = [
       "PG_VERSION=${var.postgresql_version}",
     ]
@@ -107,22 +107,23 @@ build {
   # 04 — Install Redis
   provisioner "shell" {
     script           = "${path.root}/scripts/04-install-redis.sh"
-    execute_command  = "sudo -S bash '{{ .Path }}'"
+    execute_command  = "sudo -S env {{ .Vars }} bash '{{ .Path }}'"
   }
 
   # 05 — Install Nextcloud files
   provisioner "shell" {
     script           = "${path.root}/scripts/05-install-nextcloud.sh"
-    execute_command  = "sudo -S bash '{{ .Path }}'"
+    execute_command  = "sudo -S env {{ .Vars }} bash '{{ .Path }}'"
     environment_vars = [
       "NC_VERSION=${var.nc_version}",
+      "BLOB_STORAGE_BASE_URL=${var.blob_storage_base_url}",
     ]
   }
 
   # 06 — Configure NGINX
   provisioner "shell" {
     script          = "${path.root}/scripts/06-configure-nginx.sh"
-    execute_command = "sudo -S bash '{{ .Path }}'"
+    execute_command = "sudo -S env {{ .Vars }} bash '{{ .Path }}'"
     environment_vars = [
       "PHP_VERSION=${var.php_version}",
     ]
@@ -131,7 +132,7 @@ build {
   # 07 — Configure PHP-FPM
   provisioner "shell" {
     script          = "${path.root}/scripts/07-configure-php.sh"
-    execute_command = "sudo -S bash '{{ .Path }}'"
+    execute_command = "sudo -S env {{ .Vars }} bash '{{ .Path }}'"
     environment_vars = [
       "PHP_VERSION=${var.php_version}",
     ]
@@ -140,7 +141,7 @@ build {
   # 08 — Configure PostgreSQL
   provisioner "shell" {
     script          = "${path.root}/scripts/08-configure-postgresql.sh"
-    execute_command = "sudo -S bash '{{ .Path }}'"
+    execute_command = "sudo -S env {{ .Vars }} bash '{{ .Path }}'"
     environment_vars = [
       "PG_VERSION=${var.postgresql_version}",
     ]
@@ -149,31 +150,31 @@ build {
   # 09 — Configure Redis
   provisioner "shell" {
     script          = "${path.root}/scripts/09-configure-redis.sh"
-    execute_command = "sudo -S bash '{{ .Path }}'"
+    execute_command = "sudo -S env {{ .Vars }} bash '{{ .Path }}'"
   }
 
   # 10 — Configure Nextcloud directories and permissions
   provisioner "shell" {
     script          = "${path.root}/scripts/10-configure-nextcloud.sh"
-    execute_command = "sudo -S bash '{{ .Path }}'"
+    execute_command = "sudo -S env {{ .Vars }} bash '{{ .Path }}'"
   }
 
   # 11 — Configure security (UFW, fail2ban, unattended-upgrades)
   provisioner "shell" {
     script          = "${path.root}/scripts/11-configure-security.sh"
-    execute_command = "sudo -S bash '{{ .Path }}'"
+    execute_command = "sudo -S env {{ .Vars }} bash '{{ .Path }}'"
   }
 
   # 12 — Configure cron and systemd services
   provisioner "shell" {
     script          = "${path.root}/scripts/12-configure-services.sh"
-    execute_command = "sudo -S bash '{{ .Path }}'"
+    execute_command = "sudo -S env {{ .Vars }} bash '{{ .Path }}'"
   }
 
   # 99 — Azure sysprep (waagent deprovision)
   provisioner "shell" {
     script          = "${path.root}/scripts/99-sysprep.sh"
-    execute_command = "sudo -S bash '{{ .Path }}'"
+    execute_command = "sudo -S env {{ .Vars }} bash '{{ .Path }}'"
     environment_vars = [
       "PHP_VERSION=${var.php_version}",
     ]
