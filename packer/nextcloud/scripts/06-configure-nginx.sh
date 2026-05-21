@@ -1,10 +1,13 @@
 #!/usr/bin/env bash
 # 06-configure-nginx.sh — Deploy the Nextcloud NGINX vhost configuration
+# Environment variable: PHP_VERSION (default: 8.3)
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/lib/log.sh"
+
+PHP_VERSION="${PHP_VERSION:-8.3}"
 
 log_section "06 — Configure NGINX"
 
@@ -14,6 +17,9 @@ CONFIG_SRC="/tmp/config/nginx/nextcloud.conf"
 
 log_info "Deploying Nextcloud NGINX vhost"
 install -m 644 "${CONFIG_SRC}" "${NGINX_AVAILABLE}/nextcloud.conf"
+
+log_info "Setting PHP socket version to ${PHP_VERSION} in NGINX config"
+sed -i "s|php8.3-fpm\.sock|php${PHP_VERSION}-fpm.sock|g" "${NGINX_AVAILABLE}/nextcloud.conf"
 
 if [[ ! -L "${NGINX_ENABLED}/nextcloud.conf" ]]; then
   ln -s "${NGINX_AVAILABLE}/nextcloud.conf" "${NGINX_ENABLED}/nextcloud.conf"

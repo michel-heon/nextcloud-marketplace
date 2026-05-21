@@ -11,11 +11,10 @@ packer {
 # Source: Azure ARM → Azure Compute Gallery
 # ------------------------------------------------------------
 source "azure-arm" "nextcloud" {
-  # Authentication
-  subscription_id = var.subscription_id
-  tenant_id       = var.tenant_id
-  client_id       = var.client_id
-  client_secret   = var.client_secret
+  # Authentication — Azure CLI (az login)
+  use_azure_cli_auth = true
+  subscription_id    = var.subscription_id
+  tenant_id          = var.tenant_id
 
   # Temporary build resource group
   build_resource_group_name = var.build_resource_group
@@ -124,6 +123,9 @@ build {
   provisioner "shell" {
     script          = "${path.root}/scripts/06-configure-nginx.sh"
     execute_command = "sudo -S bash '{{ .Path }}'"
+    environment_vars = [
+      "PHP_VERSION=${var.php_version}",
+    ]
   }
 
   # 07 — Configure PHP-FPM
@@ -139,6 +141,9 @@ build {
   provisioner "shell" {
     script          = "${path.root}/scripts/08-configure-postgresql.sh"
     execute_command = "sudo -S bash '{{ .Path }}'"
+    environment_vars = [
+      "PG_VERSION=${var.postgresql_version}",
+    ]
   }
 
   # 09 — Configure Redis
@@ -169,6 +174,9 @@ build {
   provisioner "shell" {
     script          = "${path.root}/scripts/99-sysprep.sh"
     execute_command = "sudo -S bash '{{ .Path }}'"
+    environment_vars = [
+      "PHP_VERSION=${var.php_version}",
+    ]
   }
 
   # Write build manifest

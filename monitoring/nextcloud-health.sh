@@ -65,7 +65,9 @@ echo ""
 
 echo "--- Services ---"
 check_service "nginx"
-check_service "php8.3-fpm"
+# Dynamically detect installed PHP-FPM version
+PHP_VERSION=$(php -r 'echo PHP_MAJOR_VERSION.".".PHP_MINOR_VERSION;' 2>/dev/null || echo "8.3")
+check_service "php${PHP_VERSION}-fpm"
 check_service "postgresql@16-main"
 check_service "redis-server"
 check_service "nextcloud-cron.timer"

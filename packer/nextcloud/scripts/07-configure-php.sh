@@ -23,6 +23,9 @@ log_info "Deploying PHP-FPM pool configuration"
 install -m 644 /tmp/config/php/www.conf \
   "${PHP_FPM_CONF_DIR}/pool.d/www.conf"
 
+log_info "Setting PHP version to ${PHP_VERSION} in pool configuration"
+sed -i "s|php8.3-fpm|php${PHP_VERSION}-fpm|g" "${PHP_FPM_CONF_DIR}/pool.d/www.conf"
+
 log_info "Setting PHP-FPM socket ownership"
 # Socket will be created by php-fpm at runtime; ensure the run directory exists
 mkdir -p "/run/php"

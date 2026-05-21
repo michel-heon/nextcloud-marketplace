@@ -7,8 +7,8 @@ tenant_id              = "00000000-0000-0000-0000-000000000000"
 client_id              = "00000000-0000-0000-0000-000000000000"
 client_secret          = ""
 
-build_resource_group   = "rg-nextcloud-packer-build"
-gallery_resource_group = "rg-nextcloud-gallery"
+build_resource_group   = "rg-nextcloud-marketplace-build"
+gallery_resource_group = "rg-nextcloud-marketplace"
 gallery_name           = "gal_nextcloud_marketplace"
 gallery_image_name     = "nextcloud-marketplace"
 replication_regions    = ["canadacentral", "eastus"]
@@ -18,6 +18,6 @@ vm_size                = "Standard_D4s_v3"
 image_version          = "0.1.0"
 environment            = "dev"
 
-nc_version             = "31.0.2"
+nc_version             = "33.0.3"
 php_version            = "8.3"
 postgresql_version     = "16"

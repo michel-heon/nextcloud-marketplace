@@ -16,6 +16,7 @@ log_info "Restarting Redis"
 systemctl restart redis-server
 
 log_info "Verifying Redis is listening on 127.0.0.1"
-redis-cli ping | grep -q PONG && log_info "Redis is healthy"
+REDIS_PASS=$(awk '/^requirepass/{print $2}' /etc/redis/redis.conf)
+redis-cli --no-auth-warning -a "${REDIS_PASS}" ping | grep -q PONG && log_info "Redis is healthy"
 
 log_section "09 — Redis configuration complete"

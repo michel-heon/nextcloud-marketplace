@@ -17,7 +17,7 @@ admin_username         = "azureuser"
 admin_ssh_pubkey       = "ssh-ed25519 AAAA... you@host"
 ssh_source_ip          = "0.0.0.0/0"
 
-gallery_resource_group = "rg-nextcloud-gallery"
+gallery_resource_group = "rg-nextcloud-marketplace"
 gallery_name           = "galNextcloudHub"
 gallery_image_name     = "nextcloud-hub"
 image_version          = "0.1.0"

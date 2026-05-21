@@ -119,81 +119,71 @@ env/
 
 ### Variables types pour nextcloud-marketplace
 
-**`env/.env.dev` (publiques, versionnées)** :
+**`env/.env` (config publique, NON versionné — copié depuis `env/.env.example`)** :
 ```bash
-# Azure
-AZURE_LOCATION="canadacentral"
-AZURE_RESOURCE_GROUP="rg-nextcloud-marketplace-build"
-VM_IMAGE_NAME="nextcloud-marketplace-vm"
-VM_SIZE="Standard_D4s_v3"
-
-# Nextcloud Stack
-NC_VERSION="6.0.1"
-MEDIAWIKI_VERSION="1.43.0"
-PHP_VERSION="8.2"
-MYSQL_VERSION="8.0"
-JAVA_VERSION="21"
-
-# Extensions
-#NC_APPS="user_saml,richdocuments,spreed,groupware"
-
-WIKI_PORT="443"
-```
-
-**`env/.env.dev.user` (secrets, NON versionnés)** :
-```bash
-# Azure Credentials (App Registration)
+# Azure Identity (non-secrets — identifient la subscription/tenant)
 AZURE_SUBSCRIPTION_ID="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
 AZURE_TENANT_ID="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+
+# Azure Resources — build Packer
+AZURE_LOCATION="<région>"
+BUILD_RESOURCE_GROUP="rg-<projet>-build"
+VM_SIZE="Standard_D4s_v3"
+
+# Azure Compute Gallery — destination image
+GALLERY_RESOURCE_GROUP="rg-<projet>"
+GALLERY_NAME="gal_<projet>"
+GALLERY_IMAGE_NAME="<projet>"
+REPLICATION_REGIONS="<région-primaire> <région-secondaire>"
+
+# Image
+IMAGE_VERSION="<semver>"
+ENVIRONMENT="dev|staging|prod"
+
+# Stack Nextcloud
+NC_VERSION="<version>"
+NC_ADMIN_USER="<utilisateur>"
+```
+
+**`env/.env.user` (secrets Azure, NON versionné — copié depuis `env/.env.user.example`)** :
+```bash
+# App Registration (Service Principal) — NE JAMAIS COMMITER
 AZURE_CLIENT_ID="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
 AZURE_CLIENT_SECRET="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-
-# Azure Marketplace Publisher
-AZURE_PUBLISHER_ID="mon-publisher-id"
-
-# Build credentials
-PACKER_SAS_TOKEN="sv=2024-..."
 ```
+
+**`env/.env.example` et `env/.env.user.example`** (templates versionnés) :
+Valeurs de référence avec placeholders. Seuls ces fichiers sont committés dans Git.
 
 ### Processus Bootstrap
 
-1. **Séparation configuration/secrets** : Sources distinctes pour config publique et secrets privés
-2. **Génération automatisée** : `make config` (via `bootstrap.py`) merge + génère 3 formats de sortie
-3. **Validation intégrée** : Vérifie variables critiques avant de continuer
-4. **Intégration Packer** : Variables disponibles sous forme de fichier HCL vars pour Packer
-5. **Dépendance automatique** : `make packer-build` appelle automatiquement `make config`
-
-```bash
-# Génère aussi packer-vars.json depuis env/generated/
-# Utilisable directement : packer build -var-file=env/generated/packer-vars.json vm-image.pkr.hcl
-```
+1. **Séparation configuration/secrets** : `env/.env` pour la config publique, `env/.env.user` pour les secrets
+2. **Chargement par le Makefile** : `-include env/.env` + `-include env/.env.user` + `export`
+3. **Validation intégrée** : `make env-check` (via `scripts/check-env.sh`) vérifie toutes les variables critiques
+4. **Intégration Packer** : Variables passées explicitement via `-var` dans les cibles `validate` / `build`
 
 ### Commandes principales
 
 ```bash
-# Setup initial (inclut config)
-make setup              # Installe dépendances + lance config
+# Setup initial
+cp env/.env.example env/.env
+cp env/.env.user.example env/.env.user
+# → remplir les valeurs dans les deux fichiers
 
-# Régénération manuelle
-make config             # Génère env/generated/*
+# Vérifier les variables
+make env-check
 
-# Build (config est appelé automatiquement)
-make packer-build       # Appelle config via packer-validate
-
-# Utilisation dans scripts Bash
-source env/generated/config.sh && packer build vm/packer/server-vm.pkr.hcl
-
-# Utilisation dans Makefile
-include env/generated/config.make
+# Build Packer
+make validate           # Valide les templates Packer
+make image-build        # Lance le build complet
 ```
 
 ### ⚠️ Règles Critiques
 
-1. **NE JAMAIS éditer** `env/generated/*` manuellement
-2. **TOUJOURS** passer par `env/.env.dev` ou `env/.env.dev.user`
-3. **TOUJOURS** régénérer avec `make config` après modification
-4. **NE JAMAIS** commiter `env/generated/*` dans Git (dans .gitignore)
-5. **NE JAMAIS** commiter `env/.env.dev.user` dans Git (contient secrets Azure)
+1. **NE JAMAIS** commiter `env/.env` dans Git (`.gitignore`)
+2. **NE JAMAIS** commiter `env/.env.user` dans Git (`.gitignore` — contient les secrets Azure)
+3. **TOUJOURS** commiter `env/.env.example` et `env/.env.user.example` (templates de référence)
+4. **Seuls les fichiers `.example`** sont versionnés
 
 ## 📊 Matrice de Décision Quantifiée
 

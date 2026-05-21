@@ -161,7 +161,7 @@ packer validate packer/      # Valide la syntaxe HCL2 et les variables
 packer build packer/         # Lance le build dans Azure
 ```
 
-1. Packer provisionne une VM temporaire dans `rg-nextcloud-marketplace`
+1. Packer provisionne une VM temporaire dans `rg-nextcloud-marketplace-build`
 2. Les scripts `provisioners/0X-*.sh` s'exécutent séquentiellement via SSH
 3. La VM est généralisée (`waagent -deprovision+user`)
 4. L'image est publiée dans `galNCMarketplace/nextcloud/{version}`

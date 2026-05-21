@@ -4,6 +4,7 @@
 # Environment & Secrets
 # ------------------------------------------------------------
 env/.env
+env/.env.user
 *.env.local
 *.env.prod
 *.pem

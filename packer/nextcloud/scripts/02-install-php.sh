@@ -25,7 +25,7 @@ else
     "php${PHP_VERSION}-cli" \
     "php${PHP_VERSION}-common" \
     "php${PHP_VERSION}-pgsql" \
-    "php${PHP_VERSION}-redis" \
+    "php-redis" \
     "php${PHP_VERSION}-gd" \
     "php${PHP_VERSION}-curl" \
     "php${PHP_VERSION}-xml" \
@@ -35,15 +35,12 @@ else
     "php${PHP_VERSION}-intl" \
     "php${PHP_VERSION}-bcmath" \
     "php${PHP_VERSION}-gmp" \
-    "php${PHP_VERSION}-imagick" \
+    "php-imagick" \
     "php${PHP_VERSION}-apcu" \
     "php${PHP_VERSION}-opcache" \
     "php${PHP_VERSION}-ldap" \
     "php${PHP_VERSION}-imap" \
-    "php${PHP_VERSION}-exif" \
-    "php${PHP_VERSION}-fileinfo" \
-    "php${PHP_VERSION}-sodium" \
-    "php${PHP_VERSION}-smbclient" \
+    "php-smbclient" \
     imagemagick
 
   log_info "Enabling PHP-FPM on boot"

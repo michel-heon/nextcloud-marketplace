@@ -7,11 +7,13 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/lib/log.sh"
 
+PHP_VERSION="${PHP_VERSION:-8.3}"
+
 log_section "99 — Sysprep and deprovision"
 
 log_info "Stopping services before cleanup"
 systemctl stop nginx || true
-systemctl stop "php8.3-fpm" || true
+systemctl stop "php${PHP_VERSION}-fpm" || true
 systemctl stop redis-server || true
 
 log_info "Cleaning apt cache"

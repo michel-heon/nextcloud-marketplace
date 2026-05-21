@@ -16,25 +16,13 @@ variable "tenant_id" {
   sensitive   = true
 }
 
-variable "client_id" {
-  type        = string
-  description = "Service principal client ID"
-  sensitive   = true
-}
-
-variable "client_secret" {
-  type        = string
-  description = "Service principal client secret"
-  sensitive   = true
-}
-
 # ------------------------------------------------------------
 # Azure Resources
 # ------------------------------------------------------------
 variable "build_resource_group" {
   type        = string
   description = "Resource group where the temporary build VM is created"
-  default     = "rg-nextcloud-packer-build"
+  default     = "rg-nextcloud-marketplace-build"
 }
 
 variable "gallery_resource_group" {
@@ -87,7 +75,7 @@ variable "environment" {
 
   validation {
     condition     = contains(["dev", "staging", "prod"], var.environment)
-    error_message = "environment must be one of: dev, staging, prod."
+    error_message = "Environment must be one of: dev, staging, prod."
   }
 }
 
@@ -97,7 +85,7 @@ variable "environment" {
 variable "nc_version" {
   type        = string
   description = "Nextcloud version to install (e.g. 31.0.2)"
-  default     = "31.0.2"
+  default     = "33.0.3"
 }
 
 variable "php_version" {

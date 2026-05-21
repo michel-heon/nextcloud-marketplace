@@ -30,17 +30,17 @@ else
   cd "${NC_TMP_DIR}"
 
   log_info "Downloading Nextcloud ${NC_VERSION}"
-  curl -fsSL --progress-bar "${NC_DOWNLOAD_URL}" -o nextcloud.zip
+  curl -fsSL --progress-bar "${NC_DOWNLOAD_URL}" -o "nextcloud-${NC_VERSION}.zip"
 
   log_info "Downloading SHA256 checksum"
-  curl -fsSL "${NC_CHECKSUM_URL}" -o nextcloud.zip.sha256
+  curl -fsSL "${NC_CHECKSUM_URL}" -o "nextcloud-${NC_VERSION}.zip.sha256"
 
   log_info "Verifying checksum"
-  sha256sum -c nextcloud.zip.sha256
+  grep "nextcloud-${NC_VERSION}\.zip$" "nextcloud-${NC_VERSION}.zip.sha256" | sha256sum -c -
 
   log_info "Extracting Nextcloud to ${NC_WEBROOT}"
   mkdir -p /var/www
-  unzip -q nextcloud.zip -d /var/www/
+  unzip -q "nextcloud-${NC_VERSION}.zip" -d /var/www/
   # unzip creates /var/www/nextcloud/
 
   log_info "Cleaning up download"
