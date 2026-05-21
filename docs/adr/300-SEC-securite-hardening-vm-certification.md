@@ -22,8 +22,9 @@ classification:
     - "azure"
     - "tls"
     - "nsg"
-    - "mediawiki"
-    - "apache"
+    - "nextcloud"
+    - "nginx"
+    - "mariadb"
 
 tags: ["security", "hardening", "tls", "ssh", "ufw", "certification", "azure-marketplace", "ubuntu"]
 stakeholders: ["@devops-team", "@architecture-team"]
@@ -72,7 +73,7 @@ X11Forwarding no
 
 ### 2. TLS — Nginx
 
-Déjà implémenté dans `docker/nginx/server.conf` (ADR-606) :
+Configuré dans `packer/provisioners/configure-tls.sh` (ADR-617) :
 ```nginx
 ssl_protocols TLSv1.2 TLSv1.3;
 ssl_ciphers   ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:...;
@@ -85,35 +86,35 @@ ssl_ciphers   ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:...;
 ```bash
 ufw default deny incoming
 ufw default allow outgoing
-ufw allow 443/tcp    # HTTPS — MediaWiki
+ufw allow 443/tcp    # HTTPS — Nextcloud
 ufw allow 80/tcp     # HTTP → redirect HTTPS
 ufw allow 22/tcp     # SSH (restreint par NSG côté Azure — voir ADR-200)
-ufw deny  3306/tcp   # MySQL — jamais exposé publiquement
+ufw deny  3306/tcp   # MariaDB — jamais exposé publiquement
+ufw deny  6379/tcp   # Redis — jamais exposé publiquement
 ufw deny  9000/tcp   # PHP-FPM — jamais exposé publiquement
 ufw --force enable
 ```
 
-### 4. Isolation Réseau MySQL et PHP-FPM
+### 4. Isolation Réseau MariaDB, Redis et PHP-FPM
 
-Les services MySQL et PHP-FPM n'écoutent que sur loopback. Configuré dans les unit files systemd :
+Les services MariaDB, Redis et PHP-FPM n'écoutent que sur loopback. Configuré dans les fichiers de configuration :
 
 ```ini
-# /etc/systemd/system/mysql.service (bind-address)
-[Service]
-bind-address = 127.0.0.1  # dans /etc/mysql/mysql.conf.d/mysqld.cnf
+# /etc/mysql/mariadb.conf.d/50-server.cnf
+[mysqld]
+bind-address = 127.0.0.1
 ```
 
 ```ini
-# /etc/systemd/system/php8.2-fpm.service
-[Service]
-Environment=CATALINA_OPTS=-Djava.net.preferIPv4Stack=true
-# server.xml : Connector address="127.0.0.1"
+# /etc/redis/redis.conf
+bind 127.0.0.1 ::1
+protected-mode yes
 ```
 
 ### 5. Pas de Credentials par Défaut
 
 - Aucun mot de passe hardcodé dans l'image
-- Le mot de passe MySQL est injecté par `cloud-init` depuis les paramètres ARM (`mysqlPassword`)
+- Le mot de passe MariaDB est injecté par `cloud-init` depuis les paramètres ARM (`dbPassword`)
 - Le mot de passe root est désactivé
 
 ```bash
@@ -127,8 +128,8 @@ sudo passwd -l root
 chmod 600 /etc/nginx/ssl/server.key
 chmod 644 /etc/nginx/ssl/server.crt
 chown root:root /etc/nginx/ssl/server.key
-chmod 750 /data/server/home
-chown -R www-data:www-data /opt/mediawiki/ /data/uploads/
+chmod 750 /var/www/nextcloud
+chown -R www-data:www-data /var/www/nextcloud/ /data/nextcloud-data/
 ```
 
 ### 7. Nettoyage Avant Généralisation
@@ -177,7 +178,7 @@ apt-get update && apt-get upgrade -y && apt-get autoremove -y
 | 7 | SSH host keys absentes | ✅ | `generalize.sh` |
 | 8 | TLS 1.1 rejeté | ✅ | `configure-nginx.sh` |
 | 9 | TLS 1.2 accepté | ✅ | `configure-nginx.sh` |
-| 10 | Port 8983 non exposé publiquement | ✅ | `security-harden.sh` + NSG |
+| 10 | Ports 3306/6379 non exposés publiquement | ✅ | `security-harden.sh` + NSG |
 | 11 | OS disk < 2 048 GB | ✅ | Packer config |
 | 12 | 2 048 premiers secteurs libres | ✅ | Image Ubuntu endorsée |
 | 13 | Mise à jour OS récente | ✅ | `security-harden.sh` |
@@ -191,21 +192,21 @@ apt-get update && apt-get upgrade -y && apt-get autoremove -y
 ```
 packer/provisioners/
   01-install-base.sh          ← curl, wget, ufw, outils système
-  02-install-php.sh           ← PHP 8.2-fpm + extensions MediaWiki
-  03-install-apache.sh        ← Apache 2.4 + mod_proxy_fcgi
-  04-install-mysql.sh         ← MySQL 8.x + base de données wiki
-  05-install-mediawiki.sh     ← MediaWiki 1.43.x + configuration
-  06-security-harden.sh       ← SSH config + UFW + permissions + apt upgrade
-  06-install-smw.sh           ← Semantic MediaWiki 6.0.1 + extensions SSO
-  08-generalize.sh            ← cleanup + waagent -deprovision+user  ← TOUJOURS DERNIER
+  02-install-php.sh           ← PHP 8.2-fpm + extensions Nextcloud
+  03-install-nginx.sh         ← Nginx + config VirtualHost
+  04-install-mariadb.sh       ← MariaDB 10.6+ + base de données nextcloud
+  05-install-redis.sh         ← Redis (cache sessions et fichiers)
+  06-install-nextcloud.sh     ← Nextcloud Hub + occ install + configuration
+  07-configure-tls.sh         ← certificat TLS auto-signé + nginx HTTPS
+  08-security-harden.sh       ← SSH config + UFW + permissions + apt upgrade
+  09-generalize.sh            ← cleanup + waagent -deprovision+user  ← TOUJOURS DERNIER
 ```
 
 ---
 
 ## 📎 Références
 
-- ADR-100 : Architecture Docker → VM (Dockerfiles source de vérité)
 - ADR-200 : Infrastructure Azure (NSG complémentaire à UFW)
-- ADR-700 : Stratégie waagent + généralisation (tests locaux avant Azure)
+- ADR-617 : Packer — outil de construction d'images VM
 - ADR-800 : Publication Azure Marketplace (15 tests certification)
 - Issue #29 : Implémentation hardening OS

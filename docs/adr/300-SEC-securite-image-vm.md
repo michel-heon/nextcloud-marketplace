@@ -23,7 +23,7 @@ classification:
     - "vm"
     - "packer"
     - "nginx"
-    - "apache"
+    - "nginx"
 
 tags: ["security", "tls", "ssh", "hardening", "certification", "marketplace", "azure-marketplace", "compliance", "ubuntu", "bash-history", "walinuxagent"]
 stakeholders: ["@architecture-team", "@devops-team"]
@@ -69,7 +69,7 @@ Les 15 tests de certification Microsoft sont documentés dans l'ADR-800 et dans 
 
 ## 💡 Décision
 
-**Nous définissons une politique de sécurité complète pour l'image VM SMW, déclinée en 4 scripts Packer (`install-azure-agent.sh`, `configure-tls.sh`, `security-harden.sh`, `cleanup-before-generalize.sh`) et validée par le Certification Test Tool Microsoft avant chaque soumission.**
+**Nous définissons une politique de sécurité complète pour l'image VM Nextcloud, déclinée en 4 scripts Packer (`install-azure-agent.sh`, `configure-tls.sh`, `security-harden.sh`, `cleanup-before-generalize.sh`) et validée par le Certification Test Tool Microsoft avant chaque soumission.**
 
 ---
 
@@ -91,7 +91,7 @@ Le **walinuxagent** est l'agent Azure requis pour :
 # IMPORTANT: Script Packer self-contained (pas de source lib/)
 set -euo pipefail
 
-LOG_FILE="/var/log/smw-install.log"
+LOG_FILE="/var/log/nextcloud-install.log"
 log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" | tee -a "$LOG_FILE"; }
 
 log "=== Installation Azure Linux Agent ==="
@@ -139,7 +139,7 @@ waagent --version                  # → WALinuxAgent-2.x.x
 # configure-tls.sh — Configuration TLS 1.2+ obligatoire
 set -euo pipefail
 
-LOG_FILE="/var/log/smw-install.log"
+LOG_FILE="/var/log/nextcloud-install.log"
 log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" | tee -a "$LOG_FILE"; }
 
 log "=== Configuration TLS ==="
@@ -219,7 +219,7 @@ openssl s_client -connect localhost:443 -tls1_2 2>&1 | grep "Cipher is"
 # security-harden.sh — Hardening OS Ubuntu 22.04 LTS
 set -euo pipefail
 
-LOG_FILE="/var/log/smw-install.log"
+LOG_FILE="/var/log/nextcloud-install.log"
 log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" | tee -a "$LOG_FILE"; }
 
 log "=== Hardening Sécurité OS ==="
@@ -267,23 +267,23 @@ apt-get install -y ufw
 ufw --force reset
 ufw default deny incoming
 ufw default allow outgoing
-ufw allow 443/tcp comment "HTTPS MediaWiki"
+ufw allow 443/tcp comment "HTTPS Nextcloud"
 ufw allow 80/tcp  comment "HTTP redirect"
 ufw allow 22/tcp  comment "SSH admin"
 ufw --force enable
 log "UFW configuré : allow 443, 80, 22 — deny tout le reste"
 
 # =====================================================
-# 3. Isolation services (MySQL interne — ADR-100)
+# 3. Isolation services (MariaDB interne)
 # =====================================================
-log "Isolation MySQL (loopback uniquement)..."
-# MySQL écoute uniquement sur loopback (127.0.0.1 par défaut sur Ubuntu)
-if grep -q "^bind-address" /etc/mysql/mysql.conf.d/mysqld.cnf 2>/dev/null; then
-  # Force MySQL à écouter uniquement sur loopback
-  sed -i 's/^bind-address.*/bind-address = 127.0.0.1/' /etc/mysql/mysql.conf.d/mysqld.cnf
-    sed -i 's/^bind-address.*/bind-address = 127.0.0.1/' /etc/mysql/mysql.conf.d/mysqld.cnf
+log "Isolation MariaDB (loopback uniquement)..."
+# MariaDB écoute uniquement sur loopback (127.0.0.1 par défaut sur Ubuntu)
+if grep -q "^bind-address" /etc/mysql/mariadb.conf.d/50-server.cnf 2>/dev/null; then
+  # Force MariaDB à écouter uniquement sur loopback
+  sed -i 's/^bind-address.*/bind-address = 127.0.0.1/' /etc/mysql/mariadb.conf.d/50-server.cnf
+    sed -i 's/^bind-address.*/bind-address = 127.0.0.1/' /etc/mysql/mariadb.conf.d/50-server.cnf
     
-  log "MySQL: bind-address=127.0.0.1"
+  log "MariaDB: bind-address=127.0.0.1"
 fi
 
 # =====================================================
@@ -344,7 +344,7 @@ Un bash history de plus de 1 KB = **rejet automatique** par Microsoft.
 # ⚠️ DOIT ÊTRE LE DERNIER SCRIPT PACKER (avant waagent -deprovision+user)
 set -euo pipefail
 
-LOG_FILE="/var/log/smw-install.log"
+LOG_FILE="/var/log/nextcloud-install.log"
 log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" | tee -a "$LOG_FILE"; }
 
 log "=== Nettoyage avant généralisation ==="
@@ -380,7 +380,7 @@ apt-get clean
 rm -rf /var/lib/apt/lists/*
 
 # Nettoyer les logs de build (garder une trace minimale)
-find /var/log -name "*.log" -not -name "smw-install.log" \
+find /var/log -name "*.log" -not -name "nextcloud-install.log" \
   -exec truncate -s 0 {} \; 2>/dev/null || true
 find /var/log -name "*.gz" -delete 2>/dev/null || true
 find /var/log -name "*.1" -delete 2>/dev/null || true
@@ -416,7 +416,7 @@ ln -sf /etc/machine-id /var/lib/dbus/machine-id
 # =====================================================
 log "=== Généralisation Azure VM (waagent -deprovision+user) ==="
 log "ATTENTION: Après cette commande, la VM est généralisée et ne doit plus être démarrée directement"
-log "Installation terminée. Voir /var/log/smw-install.log pour le détail complet."
+log "Installation terminée. Voir /var/log/nextcloud-install.log pour le détail complet."
 
 # Cette commande DOIT être la toute dernière
 # Elle supprime : users créés par provisioning, cloud-init data, network configs
@@ -429,10 +429,9 @@ waagent -force -deprovision+user
 build {
   # ... autres provisioners en premier ...
   provisioner "shell" { script = "provisioners/02-install-php.sh" }
-  provisioner "shell" { script = "provisioners/03-install-apache.sh" }
-  provisioner "shell" { script = "provisioners/05-install-mediawiki.sh" }
-  provisioner "shell" { script = "provisioners/06-install-smw.sh" }
-  provisioner "shell" { script = "provisioners/04-install-mysql.sh" }
+  provisioner "shell" { script = "provisioners/03-install-nginx.sh" }
+  provisioner "shell" { script = "provisioners/06-install-nextcloud.sh" }
+  provisioner "shell" { script = "provisioners/04-install-mariadb.sh" }
   provisioner "shell" { script = "provisioners/install-azure-agent.sh" }
   provisioner "shell" { script = "provisioners/configure-tls.sh" }
   provisioner "shell" { script = "provisioners/security-harden.sh" }
@@ -494,8 +493,8 @@ HIST_SIZE=$(wc -c < /root/.bash_history 2>/dev/null || echo 0)
 # walinuxagent
 systemctl is-active walinuxagent && echo "✅ walinuxagent actif" || echo "❌ walinuxagent inactif"
 
-# MySQL non exposé publiquement
-ss -tlnp | grep 3306 | grep "127.0.0.1" && echo "✅ MySQL loopback uniquement" || echo "❌ MySQL exposé publiquement"
+# MariaDB non exposé publiquement
+ss -tlnp | grep 3306 | grep "127.0.0.1" && echo "✅ MariaDB loopback uniquement" || echo "❌ MariaDB exposé publiquement"
 
 echo "=== Fin des vérifications sécurité ==="
 ```
@@ -509,7 +508,7 @@ echo "=== Fin des vérifications sécurité ==="
 | Bash history rebuild > 1KB après cleanup | Faible | Élevé | `cleanup-before-generalize.sh` vérifie la taille avant `waagent` |
 | TLS 1.0 / 1.1 réactivé par dépendance | Faible | Élevé | Test automatique dans `make marketplace-validate` |
 | walinuxagent désactivé après reboot | Faible | Élevé | `systemctl enable walinuxagent` + validation dans smoke test |
-| MySQL exposé accidentellement sur 0.0.0.0 | Faible | Élevé | `bind-address=127.0.0.1` dans `mysqld.cnf` + test dans smoke test |
+| MariaDB exposé accidentellement sur 0.0.0.0 | Faible | Élevé | `bind-address=127.0.0.1` dans `50-server.cnf` + test dans smoke test |
 | Clés SSH hôte non régénérées au 1er boot client | Faible | Moyen | Suppression dans cleanup + cloud-init assure la régénération |
 
 ---
@@ -518,7 +517,7 @@ echo "=== Fin des vérifications sécurité ==="
 
 | Décision | ADR |
 |----------|-----|
-| Architecture VM (ports, isolation MySQL) | [ADR-100](./100-ARCH-architecture-docker-first-vm-offer.md)](./100-ARCH-architecture-docker-first-vm-offer.md) |
+| Architecture VM (ports, isolation MariaDB) | [ADR-100](./100-ARCH-architecture-docker-first-vm-offer.md)](./100-ARCH-architecture-docker-first-vm-offer.md) |
 | Infrastructure (NSG, Compute Gallery) | [ADR-200](./200-INFRA-infrastructure-azure.md) |
 | Stack PHP + Packer HCL2 (ordre provisioners) | [ADR-605](./609-DEVOPS-php-version-strategy.md) |
 | Exigences Marketplace (15 tests certification) | [ADR-800](./800-BIZ-publication-azure-marketplace-vm-offer.md) |

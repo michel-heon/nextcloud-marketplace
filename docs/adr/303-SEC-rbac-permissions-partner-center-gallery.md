@@ -60,17 +60,17 @@ L'absence de l'une ou l'autre de ces conditions provoque une invisibilité **sil
 
 | Étape | Constat |
 |-------|---------|
-| Première tentative Partner Center | `smw-knowledge-base` absent du dropdown "Gallery image" |
+| Première tentative Partner Center | `nextcloud` absent du dropdown "Gallery image" |
 | Vérification RBAC | Rôles non assignés → assignés (`make marketplace-gallery-permissions`) |
 | Deuxième tentative Partner Center | Toujours absent |
-| Diagnostic comparatif (DSpace visible ✅, SMW absent ❌) | `publisher` de DSpace = `Cotechnoe`, `publisher` de SMW = `SMWMarketplace` |
+| Diagnostic comparatif (DSpace visible ✅, NC absent ❌) | `publisher` de DSpace = `Cotechnoe`, `publisher` de NC = `NCMarketplace` |
 | Correction | Recréation de la définition avec `--publisher cotechnoe` |
-| Troisième tentative Partner Center | `smw-knowledge-base` visible ✅ |
+| Troisième tentative Partner Center | `nextcloud` visible ✅ |
 
 ### Root Cause : Deux bugs distincts, résolution séquentielle
 
 **Bug 1 — RBAC manquant** :
-Les deux Service Principals Microsoft n'avaient pas le rôle `Compute Gallery Image Reader` sur la gallery `galSMWMarketplace`.
+Les deux Service Principals Microsoft n'avaient pas le rôle `Compute Gallery Image Reader` sur la gallery `galNCMarketplace`.
 
 ```
 SP manquants :
@@ -79,14 +79,14 @@ SP manquants :
 ```
 
 **Bug 2 — Publisher mismatch** :
-L'image definition `smw-knowledge-base` avait été créée avec `--publisher SMWMarketplace` au lieu de `--publisher cotechnoe`. Partner Center filtre silencieusement les definitions dont le `publisher` ne correspond pas à l'identifiant de l'éditeur.
+L'image definition `nextcloud` avait été créée avec `--publisher NCMarketplace` au lieu de `--publisher cotechnoe`. Partner Center filtre silencieusement les definitions dont le `publisher` ne correspond pas à l'identifiant de l'éditeur.
 
 ```json
 // Avant (invisible)
-"identifier": { "publisher": "SMWMarketplace", "offer": "smw-knowledge-base", "sku": "22_04-lts-gen2" }
+"identifier": { "publisher": "NCMarketplace", "offer": "nextcloud", "sku": "22_04-lts-gen2" }
 
 // Après (visible)
-"identifier": { "publisher": "cotechnoe", "offer": "smw-knowledge-base", "sku": "22_04-lts-gen2" }
+"identifier": { "publisher": "cotechnoe", "offer": "nextcloud", "sku": "22_04-lts-gen2" }
 ```
 
 ---
@@ -95,7 +95,7 @@ L'image definition `smw-knowledge-base` avait été créée avec `--publisher SM
 
 ### Décision 1 — Assignation RBAC des SPs Microsoft
 
-Assigner le rôle `Compute Gallery Image Reader` aux deux SPs Microsoft sur la gallery `galSMWMarketplace` :
+Assigner le rôle `Compute Gallery Image Reader` aux deux SPs Microsoft sur la gallery `galNCMarketplace` :
 
 | Service Principal | Object ID | Rôle |
 |------------------|-----------|------|
@@ -178,9 +178,9 @@ make marketplace-gallery-recreate
 
 ```bash
 # env/.env.dev
-GALLERY_NAME="galSMWMarketplace"
-GALLERY_IMAGE_NAME="smw-knowledge-base"
-GALLERY_RESOURCE_GROUP="rg-smw-marketplace"
+GALLERY_NAME="galNCMarketplace"
+GALLERY_IMAGE_NAME="nextcloud"
+GALLERY_RESOURCE_GROUP="rg-nextcloud-marketplace"
 # Publisher de l'image definition — doit correspondre au Partner Center ID (ADR-800)
 GALLERY_IMAGE_PUBLISHER="cotechnoe"
 ```
