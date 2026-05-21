@@ -48,7 +48,7 @@ effort: "high"
 ## 🎯 Contexte
 
 La publication d'une VM Offer sur Azure Marketplace requiert une infrastructure Azure précise :
-une Compute Gallery pour versionner les images, des règles NSG conformes aux exigences de certification, un ARM template que le client exécute lors du déploiement, et un data disk séparé pour les données persistantes MediaWiki (MySQL, uploads, logs).
+une Compute Gallery pour versionner les images, des règles NSG conformes aux exigences de certification, un ARM template que le client exécute lors du déploiement, et un data disk séparé pour les données persistantes Nextcloud (MariaDB, fichiers, logs).
 
 ---
 
@@ -59,13 +59,13 @@ une Compute Gallery pour versionner les images, des règles NSG conformes aux ex
 **Ubuntu 22.04 LTS Jammy** — image Azure endorsée, support jusqu'à avril 2027.
 
 ```hcl
-# packer/smw-vm.pkr.hcl
-source "azure-arm" "smw" {
+# packer/nextcloud-vm.pkr.hcl
+source "azure-arm" "nextcloud" {
   image_publisher = "Canonical"
   image_offer     = "0001-com-ubuntu-server-jammy"
   image_sku       = "22_04-lts-gen2"
   os_type         = "Linux"
-  vm_size         = "Standard_D4s_v3"    # build Packer (PHP + MediaWiki ~10-15 min)
+  vm_size         = "Standard_D4s_v3"    # build Packer (PHP + Nextcloud ~10-15 min)
 }
 ```
 
@@ -74,13 +74,13 @@ source "azure-arm" "smw" {
 Structure de versionnement des images :
 
 ```
-galSMWMarketplace/                   ← Azure Compute Gallery
-  └── smw-knowledge-base/   ← Image Definition
-        ├── 7.6.0.YYYYMMDD                ← Image Version (immutable)
+galNCMarketplace/                    ← Azure Compute Gallery
+  └── nextcloud/            ← Image Definition
+        ├── 31.0.0.YYYYMMDD               ← Image Version (immutable)
         └── ...
 ```
 
-****Tag de version** : `{SMW_VERSION}.{YYYYMMDD}` (ex: `6.0.1.20260401`).
+****Tag de version** : `{NC_VERSION}.{YYYYMMDD}` (ex: `31.0.0.20260521`).
 
 **Région** : `canadaeast` (primaire) + `eastus` (réplication — requis Marketplace).
 
@@ -88,15 +88,14 @@ galSMWMarketplace/                   ← Azure Compute Gallery
 
 | Règle | Port | Protocole | Source | Justification |
 |-------|------|-----------|--------|--------------|
-| HTTPS-IN | 443 | TCP | * | Accès MediaWiki clients |
+| HTTPS-IN | 443 | TCP | * | Accès Nextcloud clients |
 | HTTP-IN | 80 | TCP | * | Redirect → HTTPS uniquement |
 | SSH-IN | 22 | TCP | IP admin uniquement | Administration (restreint ADR-300) |
-| MYSQL-DENY | 3306 | TCP | * | MySQL jamais exposé publiquement |
-| APACHE-INT | 8080 | TCP | * | Apache/PHP-FPM interne uniquement |
+| MARIADB-DENY | 3306 | TCP | * | MariaDB jamais exposé publiquement |
 | PHP-FPM-DENY | 9000 | TCP | * | PHP-FPM jamais exposé publiquement |
-| MEDIAWIKI-INT | 80 | TCP | * | MediaWiki via nginx uniquement |
+| REDIS-DENY | 6379 | TCP | * | Redis jamais exposé publiquement |
 
-**Règle critique** : MySQL et PHP-FPM ne doivent **jamais** être exposés. Ils écoutent sur `127.0.0.1` uniquement (liaison locale dans les services systemd).
+**Règle critique** : MariaDB, PHP-FPM et Redis ne doivent **jamais** être exposés. Ils écoutent sur `127.0.0.1` uniquement (liaison locale dans les services systemd).
 
 ### 4. Data Disk — Stockage Persistant
 
@@ -105,7 +104,7 @@ galSMWMarketplace/                   ← Azure Compute Gallery
 | Paramètre | Valeur |
 |-----------|--------|
 | Type | Premium SSD LRS |
-| Taille recommandée | 128 GB (paramètre ARM configurable par client) |
+| Taille recommandée | 256 GB (paramètre ARM configurable par client) |
 | Point de montage | `/data` |
 | Filesystem | ext4 |
 | Formatage | `cloud-init` au premier boot si disque vierge |
@@ -121,7 +120,7 @@ runcmd:
     mkdir -p /data
     echo "$DISK /data ext4 defaults,nofail 0 2" >> /etc/fstab
     mount -a
-    mkdir -p /data/mysql /data/uploads /data/logs
+    mkdir -p /data/mariadb /data/nextcloud-data /data/logs
 ```
 
 ### 5. Tailles VM Recommandées (ARM template)
@@ -132,7 +131,7 @@ runcmd:
 | Production petite bibliothèque | Standard_D4s_v3 | 4 | 16 GB | ~$140 USD |
 | Production grande université | Standard_D8s_v3 | 8 | 32 GB | ~$280 USD |
 
-****Minimum requis** : `Standard_D2s_v3` (MySQL + Apache + PHP-FPM + MediaWiki nécessite 8 GB+ RAM disponible).
+****Minimum requis** : `Standard_D2s_v3` (MariaDB + Nginx + PHP-FPM + Nextcloud nécessite 8 GB+ RAM disponible).
 
 ### 6. ARM Template — createUIDefinition.json
 
@@ -144,11 +143,10 @@ Paramètres exposés au client dans le formulaire Marketplace :
     "adminUsername":      { "type": "string" },
     "adminPublicKey":     { "type": "securestring" },
     "vmSize":             { "type": "string", "defaultValue": "Standard_D4s_v3" },
-    "dataDiskSizeGB":     { "type": "int",    "defaultValue": 128 },
-    "wikiUrl":          { "type": "string" },
-    "wikiAdminEmail":   { "type": "string" },
-    "mysqlPassword": { "type": "securestring" },
-    "postgresPassword":   { "type": "securestring" },
+    "dataDiskSizeGB":     { "type": "int",    "defaultValue": 256 },
+    "nextcloudHostname": { "type": "string" },
+    "adminEmail":        { "type": "string" },
+    "dbPassword":        { "type": "securestring" },
     "sshSourceIP":        { "type": "string", "defaultValue": "*" }
   }
 }
@@ -161,9 +159,9 @@ Paramètres exposés au client dans le formulaire Marketplace :
 ```
 make packer-build
     │
-    ▼ (~30 min : Maven build + provisioners + généralisation)
+    ▼ (~15 min : provisioners + généralisation)
 Azure Compute Gallery
-  galSMWMarketplace/server-knowledge-graph/1.16.0.YYYYMMDD
+  galNCMarketplace/nextcloud/31.0.0.YYYYMMDD
     │
     ▼
 Partner Center > Technical Configuration
@@ -174,17 +172,16 @@ Client déploie depuis Azure Marketplace
   → ARM template exécuté
   → VM créée depuis image Gallery
   → cloud-init : montage data disk + injection params
-  → MediaWiki accessible sur https://{vm-ip}/
+  → Nextcloud accessible sur https://{vm-ip}/
 ```
 
 ---
 
 ## 📎 Références
 
-- ADR-100 : Architecture Docker-first (source de vérité Dockerfiles)
 - ADR-300 : Sécurité hardening OS
 - ADR-600 : Bootstrap / variables d'environnement (`IMAGE_GALLERY`, `AZURE_RESOURCE_GROUP`)
-- ADR-700 : Stratégie waagent + généralisation
+- ADR-617 : Packer — outil de construction d'images VM
 - ADR-800 : Publication Azure Marketplace (Partner Center, permissions Gallery)
 - Issue #30 : ARM template createUIDefinition.json + mainTemplate.json
 - Issue #31 : Packer build Azure → Compute Gallery
