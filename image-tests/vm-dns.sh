@@ -79,6 +79,18 @@ ssh -o StrictHostKeyChecking=no -o ConnectTimeout=15 \
 
 ok "Domaine de confiance enregistré dans Nextcloud : ${FQDN}"
 
+# --- Mettre à jour overwrite.cli.url vers le FQDN ---
+# Remplace l'URL temporaire (https://localhost ou https://IP) par le FQDN réel.
+# Indispensable pour que les assets CSS/JS chargent correctement dans le navigateur.
+info "Mise à jour de overwrite.cli.url vers le FQDN..."
+ssh -o StrictHostKeyChecking=no -o ConnectTimeout=15 \
+    -i "${SSH_PRIVKEY}" \
+    "${TEST_ADMIN_USER}@${TEST_VM_IP}" \
+    "sudo -u www-data php /var/www/nextcloud/occ config:system:set \
+        overwrite.cli.url --value=\"https://${FQDN}\"" 2>/dev/null
+
+ok "overwrite.cli.url mis à jour : https://${FQDN}"
+
 # --- Mettre à jour le state file ---
 # Supprimer une éventuelle ligne TEST_VM_FQDN existante puis la réécrire
 tmp_state=$(mktemp)

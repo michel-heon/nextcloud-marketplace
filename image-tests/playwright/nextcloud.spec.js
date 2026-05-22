@@ -57,6 +57,22 @@ test('T-BROWSER-01b : status.php — installé et hors maintenance', async ({ re
 });
 
 // ============================================================
+// T-CONFIG-01 : overwrite.cli.url correctement configuré
+// Détecte le bug : nc-first-boot.sh oublie de configurer overwrite.cli.url
+// → Nextcloud génère les URLs d'assets en http://localhost/... → UI sans styles
+// ============================================================
+test('T-CONFIG-01 : Assets CSS/JS ne pointent pas vers http://localhost', async ({ page }) => {
+    await page.goto(`${BASE_URL_HTTPS}/login`, { waitUntil: 'domcontentloaded' });
+    const html = await page.content();
+    // Si overwrite.cli.url=http://localhost, les balises <link> et <script> auront
+    // des URLs comme href="http://localhost/core/css/..."
+    expect(
+        html,
+        'Assets référencent http://localhost — overwrite.cli.url mal configuré dans nc-first-boot.sh'
+    ).not.toMatch(/(?:href|src)="http:\/\/localhost\//);
+});
+
+// ============================================================
 // T-BROWSER-02 : Connexion admin + navigation Files
 // ============================================================
 test('T-BROWSER-02 : Connexion admin et accès à Files', async ({ page }) => {

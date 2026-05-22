@@ -64,6 +64,11 @@ echo "[$(date '+%Y-%m-%d %H:%M:%S')] Configuring trusted domains"
 ${OCC} config:system:set trusted_domains 0 --value="localhost"
 ${OCC} config:system:set trusted_domains 1 --value="${NC_TRUSTED_DOMAIN}"
 
+# --- Overwrite URL (required for correct asset URLs behind HTTPS proxy) ---
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] Configuring overwrite URL and protocol"
+${OCC} config:system:set overwrite.cli.url  --value="https://${NC_TRUSTED_DOMAIN}"
+${OCC} config:system:set overwriteprotocol  --value="https"
+
 # --- Redis session caching ---
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] Configuring Redis caching"
 ${OCC} config:system:set memcache.local     --value='\OC\Memcache\APCu'

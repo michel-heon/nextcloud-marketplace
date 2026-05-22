@@ -183,6 +183,17 @@ if [[ "${FIRSTBOOT_DONE}" == "true" ]]; then
         "sudo -u www-data php /var/www/nextcloud/occ config:system:set trusted_domains 2 --value='${PUBLIC_IP}'" 2>/dev/null \
         && ok "IP ${PUBLIC_IP} ajoutée aux trusted_domains" \
         || warn "Impossible d'ajouter l'IP aux trusted_domains — continuer manuellement"
+
+    # --- Mettre à jour overwrite.cli.url vers l'IP publique ---
+    # nc-first-boot.sh utilise NC_TRUSTED_DOMAIN=localhost → overwrite.cli.url=https://localhost
+    # On corrige vers l'IP connue pour que les tests IP-based chargent les assets correctement
+    info "Mise à jour de overwrite.cli.url vers l'IP publique..."
+    ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 \
+        -i "${SSH_PRIVKEY}" \
+        "${TEST_ADMIN_USER}@${PUBLIC_IP}" \
+        "sudo -u www-data php /var/www/nextcloud/occ config:system:set overwrite.cli.url --value='https://${PUBLIC_IP}'" 2>/dev/null \
+        && ok "overwrite.cli.url mis à jour : https://${PUBLIC_IP}" \
+        || warn "Impossible de mettre à jour overwrite.cli.url — continuer manuellement"
 else
     warn "Timeout firstboot après ${TIMEOUT}s — vérifier manuellement :"
     warn "  make vm-test-ssh"
