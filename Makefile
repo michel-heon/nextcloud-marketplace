@@ -58,7 +58,8 @@ BOLD  := \033[1m
         storage-create storage-upload storage-verify storage-list storage-urls \
         playwright-install \
         vm-test-create vm-test-delete vm-test-ssh \
-        vm-test-smoke vm-test-service vm-test-e2e vm-test-cert vm-test-all
+        vm-test-smoke vm-test-service vm-test-e2e vm-test-cert vm-test-all \
+        vm-test-dns-assign vm-test-dns-e2e
 
 help: ## Show available targets
 	@echo ""
@@ -267,3 +268,9 @@ vm-test-cert: ## Tests niveau 3 — conformité Azure Marketplace
 	@bash image-tests/marketplace-cert.sh
 
 vm-test-all: vm-test-smoke vm-test-service vm-test-e2e vm-test-cert ## Lancer tous les niveaux de test
+
+vm-test-dns-assign: ## Assigner un nom DNS à la VM de test et enregistrer le FQDN dans le state file
+	@bash image-tests/vm-dns.sh
+
+vm-test-dns-e2e: ## Tests E2E Playwright via nom DNS (après vm-test-dns-assign)
+	@npx playwright test --config image-tests/playwright/playwright.config.js

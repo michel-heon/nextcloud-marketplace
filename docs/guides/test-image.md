@@ -14,12 +14,13 @@ et sur le cycle de debug décrit dans
 
 ## Vue d'ensemble
 
-Le cycle de qualification se déroule en quatre phases successives :
+Le cycle de qualification se déroule en six phases successives :
 
 ```
-[Image SIG] → [VM de test] → [Smoke L1] → [Services L2] → [E2E L2] → [Cert L3]
-                   ↑                                                        |
-                   └──────────── Backport Packer ←── Correction in-situ ───┘
+[Image SIG] → [VM de test] → [Smoke L1] → [Services L2] → [E2E L2/IP] → [Cert L3/IP]
+                   ↑                                                             |
+                   │         [E2E L2/DNS] ← [DNS assign] ←─────────────────────┘
+                   └──────────── Backport Packer ←── Correction in-situ ────────┘
 ```
 
 | Phase | Cible | Durée | Commande |
@@ -27,9 +28,17 @@ Le cycle de qualification se déroule en quatre phases successives :
 | 1 — Création VM | Instanciation depuis la gallery | ~5 min | `make vm-test-create` |
 | 2 — Smoke (Niveau 1) | VM active, SSH, firstboot, services | < 2 min | `make vm-test-smoke` |
 | 3 — Services (Niveau 2) | OS, composants, base de données, Nextcloud | ~5 min | `make vm-test-service` |
-| 4 — E2E Playwright (Niveau 2) | Navigateur, login, API, redirections | ~5 min | `make vm-test-e2e` |
-| 5 — Certification (Niveau 3) | Conformité Azure Marketplace | ~10 min | `make vm-test-cert` |
-| — | Toutes les phases en séquence | ~25 min | `make vm-test-all` |
+| 4 — E2E Playwright (Niveau 2) | Navigateur, login, API, redirections — via IP | ~5 min | `make vm-test-e2e` |
+| 5 — Certification (Niveau 3) | Conformité Azure Marketplace — via IP | ~10 min | `make vm-test-cert` |
+| — | Phases 2 à 5 en séquence | ~25 min | `make vm-test-all` |
+| 6 — Assignation DNS | Nom DNS Azure + trusted\_domain Nextcloud | < 1 min | `make vm-test-dns-assign` |
+| 6b — E2E via DNS | Re-validation Playwright via FQDN | ~5 min | `make vm-test-dns-e2e` |
+
+> **Pourquoi tester via DNS ?** Les navigateurs et proxies modernes traitent
+> différemment les noms d'hôte et les adresses IP : HSTS, cookies SameSite,
+> redirections de service discovery (`.well-known/carddav`), et certains comportements
+> TLS ne s'appliquent qu'à un FQDN. La phase 6 valide que l'image se comporte
+> correctement lorsqu'un utilisateur final accède à Nextcloud par son nom DNS.
 
 ---
 
@@ -124,6 +133,17 @@ cp -n image-tests/env/.env.test.example image-tests/env/.env.test
 | `TEST_REDIS_PASS` | `redis123!` | Mot de passe Redis de test |
 
 La version d'image testée est lue depuis `IMAGE_VERSION` dans `env/.env`.
+
+> Les variables **`TEST_VM_IP`** et **`TEST_VM_FQDN`** ne sont **pas** définies dans
+> `.env.test` — elles sont écrites dynamiquement dans `.image-test-state` par
+> `vm-create.sh` et `vm-dns.sh` respectivement.
+
+| Variable (state) | Source | Description |
+|------------------|--------|-------------|
+| `TEST_VM_IP` | Écrite par `vm-create.sh` | IP publique de la VM créée |
+| `TEST_VM_FQDN` | Écrite par `vm-dns.sh` | FQDN après assignation DNS |
+| `IMAGE_VERSION` | Copiée depuis `env/.env` | Version de l'image testée |
+| `CREATED_AT` | Horodatage ISO 8601 | Date/heure de création de la VM |
 
 ---
 
@@ -258,6 +278,85 @@ Critères de conformité Azure Marketplace :
 
 ---
 
+## Phase 6 — Assignation DNS et re-validation E2E
+
+Cette phase assigne un nom DNS à l'IP publique de la VM de test, ajoute le FQDN
+comme domaine de confiance Nextcloud, puis relance les tests E2E via ce FQDN.
+
+### Pourquoi une phase DNS ?
+
+Les navigateurs et proxies modernes traitent différemment les noms d'hôte et les
+adresses IP : HSTS ne s'applique qu'aux noms d'hôte, les cookies `SameSite=Strict`
+se comportent différemment sur les IPs, et certains clients CalDAV/CardDAV n'acceptent
+que les FQDN. Cette phase valide le comportement réel d'un déploiement en production.
+
+### 6a — Assigner le nom DNS
+
+```bash
+make vm-test-dns-assign
+```
+
+Cette commande exécute `image-tests/vm-dns.sh` et effectue les opérations suivantes :
+
+1. Lit `TEST_VM_NAME`, `TEST_RG` et `IMAGE_VERSION` depuis `.image-test-state`
+2. Construit le label DNS : `nc-test-v{version}` (ex. `0.1.3` → `nc-test-v0-1-3`)
+3. Récupère le nom de la ressource IP publique Azure via `az vm list-ip-addresses`
+4. Assigne le label via `az network public-ip update --dns-name`
+5. Récupère le FQDN résultant : `nc-test-v0-1-3.canadacentral.cloudapp.azure.com`
+6. Ajoute le FQDN comme `trusted_domains[1]` Nextcloud via `occ config:system:set`
+7. Écrit `TEST_VM_FQDN=<fqdn>` dans `.image-test-state`
+
+À la fin, le résultat attendu est :
+
+```
+[OK] Nom DNS assigné avec succès
+
+  FQDN  : nc-test-v0-1-3.canadacentral.cloudapp.azure.com
+  HTTPS : https://nc-test-v0-1-3.canadacentral.cloudapp.azure.com
+
+  Prochaine étape : make vm-test-dns-e2e
+```
+
+> **Format du label DNS** : `nc-test-v{version}-{region}` avec les `.` remplacés
+> par des `-`. Le label est unique par version et région, ce qui évite les
+> conflits si plusieurs VMs de test coexistent dans des régions différentes.
+
+> **Propagation DNS** : le FQDN Azure (`*.cloudapp.azure.com`) est résolu
+> immédiatement sans délai de propagation DNS externe. Le test peut être lancé
+> dès que la commande retourne.
+
+### 6b — Re-lancer les tests E2E via DNS
+
+```bash
+make vm-test-dns-e2e
+```
+
+Exécute les mêmes specs Playwright qu'en Phase 4, mais en utilisant le FQDN
+comme cible. Après `vm-test-dns-assign`, le fichier `.image-test-state` contient
+`TEST_VM_FQDN` ; `playwright.config.js` le détecte automatiquement et utilise
+le FQDN comme `baseURL`.
+
+| Test | Comportement spécifique via FQDN |
+|------|----------------------------------|
+| T-BROWSER-00 | HTTP redirige vers `https://<fqdn>` (vérifie que l'hôte de la redirection est correct) |
+| T-BROWSER-01 | Page de login accessible via le nom DNS |
+| T-BROWSER-01b | `status.php` — cohérence de l'installation |
+| T-BROWSER-02 | Connexion admin via FQDN |
+| T-BROWSER-03 | API OCS via FQDN |
+| T-BROWSER-04 | `.well-known/carddav` redirige via FQDN |
+| T-BROWSER-04b | `.well-known/caldav` redirige via FQDN |
+| M-SEC-01 | HTTPS accessible via FQDN (même cert auto-signé, `ignoreHTTPSErrors: true`) |
+| M-SEC-02 | Headers de sécurité présents (`Strict-Transport-Security`, `X-Frame-Options`) |
+| M-SEC-03 | `Server:` header sans version Nginx/PHP |
+
+> **trusted_domains requis** : si la phase 6a a été correctement exécutée,
+> Nextcloud accepte les requêtes vers le FQDN. Sans cette configuration,
+> Nextcloud retourne `Access through untrusted domain` (HTTP 400).
+> Vérifier avec : `make vm-test-ssh` puis :
+> `sudo -u www-data php /var/www/nextcloud/occ config:system:get trusted_domains`
+
+---
+
 ## Connexion SSH à la VM de test
 
 Pour ouvrir une session interactive :
@@ -388,19 +487,28 @@ image-tests/
 ├── lib/
 │   └── common.sh            # Bibliothèque partagée (ADR-604)
 │                            #   couleurs, logging, load_env(), load_state(), ssh_run()
-├── vm-create.sh          # Instanciation de la VM de test
-├── vm-delete.sh          # Suppression de la VM et du resource group
+├── vm-create.sh          # Phase 1 — Instanciation de la VM de test
+├── vm-delete.sh          # Nettoyage — Suppression de la VM et du resource group
 ├── vm-ssh.sh             # Connexion SSH (interactive ou commande)
-├── smoke-test.sh         # Niveau 1 — smoke tests
-├── service-check.sh      # Niveau 2 — vérification des services
-├── marketplace-cert.sh   # Niveau 3 — conformité Azure Marketplace
+├── vm-dns.sh             # Phase 6 — Assignation DNS + trusted_domain Nextcloud
+├── smoke-test.sh         # Phase 2 — Niveau 1 smoke tests
+├── service-check.sh      # Phase 3 — Niveau 2 vérification des services
+├── marketplace-cert.sh   # Phase 5 — Niveau 3 conformité Azure Marketplace
 └── playwright/
     ├── playwright.config.js     # Configuration Playwright (ESM)
-    ├── nextcloud.spec.js        # Tests E2E Nextcloud (Niveau 2)
-    └── marketplace.spec.js      # Tests de sécurité Marketplace (Niveau 3)
+    │                            #   Lit TEST_VM_FQDN dans .image-test-state si disponible,
+    │                            #   sinon TEST_VM_IP. Export: vmIp, vmFqdn, adminUser, adminPass
+    ├── nextcloud.spec.js        # Phase 4/6b — Tests E2E Nextcloud (Niveau 2)
+    └── marketplace.spec.js      # Phase 4/6b — Tests de sécurité Marketplace (Niveau 3)
 
 .image-test-state         # État de la VM active (chmod 600, gitignored)
-playwright-report/        # Rapport HTML Playwright (gitignored)
+                          #   TEST_VM_NAME, TEST_RG, TEST_VM_IP, TEST_ADMIN_USER,
+                          #   TEST_SSH_KEY_PATH, TEST_NC_ADMIN_USER, TEST_NC_ADMIN_PASS,
+                          #   IMAGE_VERSION, CREATED_AT
+                          #   TEST_VM_FQDN  ← ajouté par vm-dns.sh (Phase 6)
+.test-reports/
+└── playwright/           # Rapport HTML Playwright (gitignored)
+playwright-report/        # Rapport alternatif Playwright (gitignored)
 test-results/             # Traces Playwright (gitignored)
 package.json              # Dépendances Node.js (Playwright)
 node_modules/             # Installé à la racine (gitignored)
@@ -452,6 +560,16 @@ node_modules/             # Installé à la racine (gitignored)
 | Configuration Playwright (ESM, `ignoreHTTPSErrors`) | Playwright — Getting Started | <https://playwright.dev/docs/intro> |
 | Tests de navigation et login | Playwright — Writing Tests | <https://playwright.dev/docs/writing-tests> |
 | Firefox headless pour tests TLS auto-signé | Playwright — Browser configuration | <https://playwright.dev/docs/browsers> |
+
+#### DNS Azure et domaines Nextcloud (Phase 6)
+
+| Pratique | Source | URL |
+|----------|--------|-----|
+| Assigner un label DNS à une IP publique Azure | Microsoft Learn — `az network public-ip update` | <https://learn.microsoft.com/en-us/cli/azure/network/public-ip#az-network-public-ip-update> |
+| Format FQDN Azure (`*.cloudapp.azure.com`) | Microsoft Learn — DNS pour IP publiques Azure | <https://learn.microsoft.com/en-us/azure/virtual-network/ip-services/public-ip-addresses#dns-hostname-resolution> |
+| `occ config:system:set trusted_domains` | Nextcloud Admin Manual — Configuration system | <https://docs.nextcloud.com/server/latest/admin_manual/configuration_server/config_sample_php_parameters.html#trusted-domains> |
+| Erreur "Access through untrusted domain" | Nextcloud Admin Manual — General troubleshooting | <https://docs.nextcloud.com/server/latest/admin_manual/issues/general_troubleshooting.html#access-through-untrusted-domain> |
+| HSTS — comportement différent IP vs FQDN | MDN Web Docs — HTTP Strict Transport Security | <https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Strict-Transport-Security> |
 
 #### Certification Azure Marketplace (ADR-800)
 

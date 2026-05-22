@@ -12,10 +12,12 @@
 //   - status.php cohérent (installed=true, maintenance=false)
 
 import { test, expect } from '@playwright/test';
-import { vmIp, adminUser, adminPass } from './playwright.config.js';
+import { vmFqdn, adminUser, adminPass } from './playwright.config.js';
 
-const BASE_URL_HTTPS = `https://${vmIp}`;
-const BASE_URL_HTTP  = `http://${vmIp}`;
+// vmFqdn = FQDN DNS si disponible (après vm-test-dns-assign), sinon IP publique.
+// Permet de relancer les mêmes tests contre le nom DNS sans modification.
+const BASE_URL_HTTPS = `https://${vmFqdn}`;
+const BASE_URL_HTTP  = `http://${vmFqdn}`;
 
 // ============================================================
 // T-BROWSER-00 : HTTP → HTTPS Redirect

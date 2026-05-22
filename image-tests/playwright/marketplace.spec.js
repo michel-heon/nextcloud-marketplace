@@ -12,9 +12,10 @@
 //   - TLS accessible (navigateur moderne)
 
 import { test, expect } from '@playwright/test';
-import { vmIp } from './playwright.config.js';
+import { vmFqdn } from './playwright.config.js';
 
-const BASE = `https://${vmIp}`;
+// vmFqdn = FQDN DNS si disponible (après vm-test-dns-assign), sinon IP publique.
+const BASE = `https://${vmFqdn}`;
 
 // ============================================================
 // M-SEC-01 : HTTPS accessible
