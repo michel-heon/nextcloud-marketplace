@@ -95,9 +95,6 @@ write_files:
       NC_DB_PASSWORD=${TEST_NC_DB_PASS}
       REDIS_PASSWORD=${TEST_REDIS_PASS}
       NC_TRUSTED_DOMAIN=localhost
-
-runcmd:
-  - systemctl start nextcloud-first-boot.service
 CLOUDINIT
 
 # --- VM creation ---
@@ -118,7 +115,7 @@ VM_JSON=$(az vm create \
 PUBLIC_IP=$(echo "${VM_JSON}" | python3 -c "import sys,json; print(json.load(sys.stdin)['publicIpAddress'])")
 ok "VM créée — IP publique : ${PUBLIC_IP}"
 
-# --- Open HTTPS port ---
+# --- Open HTTP and HTTPS ports ---
 info "Ouverture du port 443 (HTTPS)..."
 az vm open-port \
     --resource-group "${TEST_RG}" \
@@ -127,6 +124,18 @@ az vm open-port \
     --priority 900 \
     --output none
 ok "Port 443 ouvert"
+
+info "Ouverture du port 80 (HTTP → redirection HTTPS)..."
+az network nsg rule create \
+    --resource-group "${TEST_RG}" \
+    --nsg-name "${TEST_VM_NAME}NSG" \
+    --name open-port-80 \
+    --priority 901 \
+    --destination-port-ranges 80 \
+    --access Allow \
+    --protocol Tcp \
+    --output none
+ok "Port 80 ouvert"
 
 # --- Wait for SSH ---
 info "Attente de la disponibilité SSH (timeout : 2 min)..."
@@ -165,6 +174,15 @@ done
 
 if [[ "${FIRSTBOOT_DONE}" == "true" ]]; then
     ok "Firstboot terminé"
+
+    # --- Add public IP to Nextcloud trusted_domains ---
+    info "Ajout de l'IP publique aux trusted_domains Nextcloud..."
+    ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 \
+        -i "${SSH_PRIVKEY}" \
+        "${TEST_ADMIN_USER}@${PUBLIC_IP}" \
+        "sudo -u www-data php /var/www/nextcloud/occ config:system:set trusted_domains 2 --value='${PUBLIC_IP}'" 2>/dev/null \
+        && ok "IP ${PUBLIC_IP} ajoutée aux trusted_domains" \
+        || warn "Impossible d'ajouter l'IP aux trusted_domains — continuer manuellement"
 else
     warn "Timeout firstboot après ${TIMEOUT}s — vérifier manuellement :"
     warn "  make vm-test-ssh"
