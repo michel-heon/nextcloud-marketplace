@@ -49,7 +49,7 @@ chown root:root /usr/local/bin/nc-first-boot.sh
 cat > /etc/systemd/system/nextcloud-first-boot.service <<'EOF'
 [Unit]
 Description=Nextcloud first-boot database installation and configuration
-After=network-online.target postgresql.service redis-server.service nginx.service
+After=network-online.target postgresql.service redis-server.service nginx.service cloud-init.target
 Wants=network-online.target
 ConditionPathExists=/var/lib/cloud/instance/boot-finished
 # Disable after first successful run

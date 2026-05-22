@@ -25,7 +25,7 @@ else
     "php${PHP_VERSION}-cli" \
     "php${PHP_VERSION}-common" \
     "php${PHP_VERSION}-pgsql" \
-    "php-redis" \
+    "php${PHP_VERSION}-redis" \
     "php${PHP_VERSION}-gd" \
     "php${PHP_VERSION}-curl" \
     "php${PHP_VERSION}-xml" \

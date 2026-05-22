@@ -63,13 +63,14 @@ BOLD  := \033[1m
 help: ## Show available targets
 	@echo ""
 	@echo "$(BOLD)nextcloud-marketplace$(RESET)"
-	@echo ""
-	@grep -hE '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
-		awk 'BEGIN {FS = ":.*?## "}; {printf "  $(CYAN)%-22s$(RESET) %s\n", $$1, $$2}'
+	@grep -hE '^##@|^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
+		awk 'BEGIN {FS = ":.*?## "}; \
+		     /^##@/ {printf "\n$(BOLD)%s$(RESET)\n", substr($$0, 4)}; \
+		     /^[a-zA-Z0-9_-]+:/ {printf "  $(CYAN)%-24s$(RESET) %s\n", $$1, $$2}'
 	@echo ""
 
 # ------------------------------------------------------------
-# Azure
+##@ Azure
 # ------------------------------------------------------------
 
 azure-login: ## Login to Azure interactively via browser (az login)
@@ -78,7 +79,7 @@ azure-login: ## Login to Azure interactively via browser (az login)
 	@az account show --query "{subscription:name, id:id, tenant:tenantId}" -o table
 
 # ------------------------------------------------------------
-# Azure Infrastructure
+##@ Infrastructure Azure
 # ------------------------------------------------------------
 
 infra-rg: ## Create Azure resource groups (build + gallery)
@@ -109,15 +110,13 @@ infra-create: infra-rg infra-gallery infra-image-def ## Create all Azure infrast
 	@echo "$(BOLD)Infrastructure Azure prête.$(RESET)"
 
 # ------------------------------------------------------------
-# Environment
+##@ Image — Construction
 # ------------------------------------------------------------
 
 env-check: ## Verify required environment variables are set
 	@bash scripts/check-env.sh
 
-# ------------------------------------------------------------
-# Packer
-# ------------------------------------------------------------
+# (Packer)
 
 init: ## Initialize Packer plugins
 	cd $(PACKER_DIR) && packer init .
@@ -163,7 +162,7 @@ image-build-debug: env-check ## Build the Nextcloud VM image (debug mode)
 		.
 
 # ------------------------------------------------------------
-# Blob Storage Cache (ADR-616)
+##@ Blob Storage Cache (ADR-616)
 # ------------------------------------------------------------
 
 storage-create: env-check ## Create Azure Blob Storage account and container (idempotent)
@@ -182,7 +181,7 @@ storage-urls: ## Show public URLs of cached packages
 	@bash packer/nextcloud/scripts/storage-provision.sh urls
 
 # ------------------------------------------------------------
-# Terraform
+##@ Terraform
 # ------------------------------------------------------------
 
 tf-init: ## Initialize Terraform
@@ -199,7 +198,7 @@ tf-apply: ## Terraform apply
 		-var "environment=$(ENVIRONMENT)"
 
 # ------------------------------------------------------------
-# Quality
+##@ Qualité
 # ------------------------------------------------------------
 
 lint: ## Lint shell scripts
@@ -226,7 +225,7 @@ vm-check: ## Run service checks inside the VM via SSH (requires VM_SSH=user@host
 	@ssh -o StrictHostKeyChecking=no "$${VM_SSH}" 'sudo bash -s' < tests/check-services.sh
 
 # ------------------------------------------------------------
-# Utilities
+##@ Utilitaires
 # ------------------------------------------------------------
 
 sysprep: ## Prepare VM for imaging (run inside the VM)
@@ -239,7 +238,7 @@ clean: ## Remove generated artifacts
 	@echo "Clean done."
 
 # ------------------------------------------------------------
-# Image Testing (ADR-700 / ADR-701)
+##@ Tests VM (ADR-700 / ADR-701)
 # ------------------------------------------------------------
 
 playwright-install: ## Installer Playwright et les navigateurs (une seule fois)
