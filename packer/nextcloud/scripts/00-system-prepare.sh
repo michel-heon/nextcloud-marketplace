@@ -66,4 +66,13 @@ log_info "Setting system locale"
 locale-gen en_US.UTF-8
 update-locale LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8
 
+log_info "Configuring GRUB serial console (required for Azure Marketplace — policy 200.4)"
+# Add serial console to GRUB_CMDLINE_LINUX (idempotent)
+if ! grep -q "console=ttyS0" /etc/default/grub; then
+  sed -i 's|^GRUB_CMDLINE_LINUX="\(.*\)"$|GRUB_CMDLINE_LINUX="\1 console=ttyS0,115200n8 earlyprintk=ttyS0 rootdelay=300"|' /etc/default/grub
+  # Remove duplicate leading space if original value was empty
+  sed -i 's|GRUB_CMDLINE_LINUX=" |GRUB_CMDLINE_LINUX="|' /etc/default/grub
+  update-grub
+fi
+
 log_section "00 — System preparation complete"

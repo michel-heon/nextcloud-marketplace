@@ -35,6 +35,9 @@ unset HISTFILE
 rm -f /root/.bash_history
 rm -f /home/packer/.bash_history 2>/dev/null || true
 
+log_info "Removing residual SSH authorized_keys (policy 200.5 — image cleanliness)"
+find /root /home -name 'authorized_keys' -exec truncate -s 0 {} \; 2>/dev/null || true
+
 log_info "Removing SSH host keys (will be regenerated on first boot)"
 rm -f /etc/ssh/ssh_host_*
 
