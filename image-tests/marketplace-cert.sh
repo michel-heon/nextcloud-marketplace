@@ -2,6 +2,7 @@
 # image-tests/marketplace-cert.sh
 # Tests de conformité Microsoft Azure Marketplace — Niveau 3 (Certifiable)
 # Référence: ADR-701, ADR-300, ADR-302
+# Politique officielle: https://learn.microsoft.com/en-us/legal/marketplace/certification-policies
 #
 # Critères couverts :
 #   1. SSH key-only (PasswordAuthentication no, PermitRootLogin no)
@@ -11,6 +12,9 @@
 #   5. Généralisation waagent (DeleteRootPassword, RegenerateSshHostKeyPair)
 #   6. Mode maintenance désactivé
 #   7. Pas de services inutiles exposés (HTTP non-filtré, phpinfo, etc.)
+#   8. Exigences Linux Azure (200.3.3) : architecture 64-bit, hv_netvsc, no-swap,
+#      serial console, Azure Linux Agent ≥ 2.2.10
+#   9. Propreté image (200.5) : bash history, SSH keys résiduelles, OpenSSL, Defender
 #
 # Usage: bash image-tests/marketplace-cert.sh
 
@@ -186,10 +190,113 @@ else
     fail ".env exposé publiquement — risque de divulgation de credentials"
 fi
 
-# ---- 8. Rappel AMAT ----
+# ---- 8. Exigences Linux Azure — politique 200.3.3 ----
 echo ""
-echo "--- 8. Azure Marketplace Certification Tool (AMAT) ---"
-warn "L'outil AMAT doit être exécuté séparément sur l'image SIG publiée."
+echo "--- 8. Exigences Linux Azure (politique 200.3.3 / 200.4) ---"
+
+# Architecture OS 64-bit
+ARCH=$(ssh_run "uname -m" || echo "")
+if [[ "${ARCH}" == "x86_64" || "${ARCH}" == "aarch64" ]]; then
+    pass "Architecture OS: ${ARCH} (64 bits)"
+else
+    fail "Architecture OS: ${ARCH} — 64-bit requis pour Azure Marketplace"
+fi
+
+# Driver hv_netvsc (réseau Hyper-V) chargé ou compilé dans le kernel
+HV_LOADED=$(ssh_run "lsmod 2>/dev/null | grep -c hv_netvsc || echo 0" || echo "0")
+if [[ "${HV_LOADED}" != "0" ]]; then
+    pass "Driver hv_netvsc chargé (Hyper-V réseau)"
+else
+    HV_BUILTIN=$(ssh_run "grep -c 'CONFIG_HYPERV_NET=y' /boot/config-\$(uname -r) 2>/dev/null || echo 0" || echo "0")
+    if [[ "${HV_BUILTIN}" != "0" ]]; then
+        pass "Driver hv_netvsc compilé dans le kernel"
+    else
+        warn "hv_netvsc non détecté — vérifier la compatibilité Hyper-V (200.3.3)"
+    fi
+fi
+
+# Pas de partition swap active sur le disque OS
+SWAP_ACTIVE=$(ssh_run "swapon --show 2>/dev/null | wc -l || echo 0" || echo "0")
+if [[ "${SWAP_ACTIVE}" -eq 0 ]]; then
+    pass "Pas de partition swap active (conforme 200.3.3)"
+else
+    warn "Partition swap active — non recommandé sur l'OS disk Azure (200.3.3)"
+fi
+
+# Serial console dans les paramètres GRUB (requis pour débogage Azure — 200.4)
+# Note: grep avec '=' pour éviter de matcher GRUB_CMDLINE_LINUX_DEFAULT
+GRUB_CMDLINE=$(ssh_run "grep '^GRUB_CMDLINE_LINUX=' /etc/default/grub 2>/dev/null | head -1" || echo "")
+if echo "${GRUB_CMDLINE}" | grep -q "console=ttyS0"; then
+    pass "GRUB: console=ttyS0 présent (serial console Azure)"
+else
+    fail "GRUB: console=ttyS0 absent — requis pour le débogage série Azure (politique 200.4)"
+fi
+
+# Azure Linux Agent version ≥ 2.2.10
+WAAGENT_VER=$(ssh_run "waagent --version 2>/dev/null | head -1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1" || echo "")
+if [[ -n "${WAAGENT_VER}" ]]; then
+    VER_MAJOR=$(echo "${WAAGENT_VER}" | cut -d. -f1)
+    VER_MINOR=$(echo "${WAAGENT_VER}" | cut -d. -f2)
+    VER_PATCH=$(echo "${WAAGENT_VER}" | cut -d. -f3)
+    if (( VER_MAJOR > 2 )) || \
+       (( VER_MAJOR == 2 && VER_MINOR > 2 )) || \
+       (( VER_MAJOR == 2 && VER_MINOR == 2 && VER_PATCH >= 10 )); then
+        pass "Azure Linux Agent: v${WAAGENT_VER} (≥ 2.2.10)"
+    else
+        fail "Azure Linux Agent: v${WAAGENT_VER} — version minimale 2.2.10 requise"
+    fi
+else
+    fail "Azure Linux Agent (waagent) non installé ou non détectable"
+fi
+
+# ---- 9. Propreté de l'image — politique 200.5 ----
+echo ""
+echo "--- 9. Propreté de l'image (politique 200.5) ---"
+
+# Historique bash vidé lors de la généralisation
+BASH_HIST=$(ssh_run "wc -l < ~/.bash_history 2>/dev/null || echo 0" || echo "0")
+if [[ "${BASH_HIST}" -eq 0 ]]; then
+    pass "Historique bash vide (image dépersonnalisée)"
+else
+    warn "Historique bash: ${BASH_HIST} ligne(s) — generalize.sh doit vider ~/.bash_history"
+fi
+
+# Pas de clés SSH résiduelles d'un buildbot/testeur dans /root
+# Note: /home/${TEST_ADMIN_USER}/.ssh/authorized_keys est injecté par Azure à la création — ne pas vérifier
+RESIDUAL_KEYS=$(ssh_run \
+    "sudo find /root -name 'authorized_keys' 2>/dev/null \
+     | xargs -I{} wc -l {} 2>/dev/null | awk '{s+=\$1} END{print s+0}'" || echo "0")
+if [[ "${RESIDUAL_KEYS}" -eq 0 ]]; then
+    pass "Aucune clé SSH résiduelle dans /root (authorized_keys vides ou absents)"
+else
+    warn "Clés SSH résiduelles: ${RESIDUAL_KEYS} entrée(s) dans /root — à supprimer dans generalize.sh"
+fi
+
+# OpenSSL version ≥ 1.0
+OPENSSL_VER=$(ssh_run "openssl version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+[a-z]?' | head -1" || echo "")
+if [[ -n "${OPENSSL_VER}" ]]; then
+    OPENSSL_MAJOR=$(echo "${OPENSSL_VER}" | cut -d. -f1)
+    if (( OPENSSL_MAJOR >= 1 )); then
+        pass "OpenSSL: v${OPENSSL_VER} (≥ 1.0)"
+    else
+        fail "OpenSSL: v${OPENSSL_VER} — version 1.0+ requise (200.5)"
+    fi
+else
+    warn "OpenSSL: version non détectable"
+fi
+
+# Aucun antivirus Microsoft Defender/MDATP pré-installé (200.4)
+DEFENDER=$(ssh_run "dpkg -l 2>/dev/null | grep -Ei 'mdatp|microsoft-defender' | head -3" || echo "")
+if [[ -z "${DEFENDER}" ]]; then
+    pass "Aucun Microsoft Defender/MDATP pré-installé (conforme 200.4)"
+else
+    warn "Microsoft Defender/MDATP détecté: ${DEFENDER} — supprimer ou justifier avant publication"
+fi
+
+# ---- 10. Rappel AMAT ----
+echo ""
+echo "--- 10. Azure Marketplace Certification Tool (AMAT) ---"
+warn "L'outil AMAT officiel doit être exécuté sur l'image SIG publiée."
 warn "Documentation : https://learn.microsoft.com/azure/marketplace/azure-vm-image-certification"
 warn "Outil officiel : https://github.com/Azure/Azure-Certification-Tools"
 
