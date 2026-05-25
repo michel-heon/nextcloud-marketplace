@@ -2,7 +2,7 @@
 adr: 701
 title: "Protocole de Qualification Post-Image : Critères d'Acceptation et Non-Régression"
 status: "accepted"
-date: 2026-05-15
+date: 2026-05-25
 superseded_by: null
 replaces: null
 related_adrs: [613, 618, 700, 800]
@@ -164,7 +164,10 @@ Chaque échec est un symptôme traçable vers une couche de provisioner spécifi
 ### Niveau 3 — Qualification Certifiable
 
 **Objectif** : vérifier la conformité aux exigences non-fonctionnelles et
-Marketplace (ADR-800). Ce niveau requiert une checklist formelle.
+Marketplace (ADR-800, politique 200.3.3 / 200.4 / 200.5). Ce niveau requiert une checklist formelle.
+
+> Mis à jour 2026-05-25 : ajout des contrôles plateforme Linux Azure et propreté
+> image à la suite de l'audit de couverture vs politique officielle.
 
 | Domaine | Critère | Outil de vérification |
 |---------|---------|----------------------|
@@ -174,9 +177,14 @@ Marketplace (ADR-800). Ce niveau requiert une checklist formelle.
 | **Credentials** | Aucun mot de passe en clair dans l'image | Scan scripts + image |
 | **Idempotence firstboot** | Re-exécution de `nc-firstboot` ne casse pas le service | Re-run manuel + tests |
 | **Généralisation** | Image dépersonnalisée (`waagent -deprovision`) | Vérif. `/etc/waagent.conf` |
+| **Plateforme Azure** | Architecture 64-bit, driver hv_netvsc, serial console (`console=ttyS0`) | `marketplace-cert.sh` section 8 |
+| **Agent Azure** | Azure Linux Agent ≥ 2.2.10 | `marketplace-cert.sh` section 8 |
+| **OS disk** | Pas de partition swap active | `marketplace-cert.sh` section 8 |
+| **Propreté image** | `bash_history` vide, `authorized_keys` absents, pas de Defender/MDATP | `marketplace-cert.sh` section 9 |
+| **OpenSSL** | Version ≥ 1.0 | `marketplace-cert.sh` section 9 |
 | **AMAT** | Score de certification Marketplace ≥ seuil requis | Azure AMAT tool |
 
-**Résultat attendu** : 7/7 critères verts → image qualifiée pour publication.
+**Résultat attendu** : 12/12 critères verts → image qualifiée pour publication.
 
 ---
 

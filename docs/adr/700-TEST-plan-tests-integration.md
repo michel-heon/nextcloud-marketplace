@@ -2,7 +2,7 @@
 adr: 700
 title: "Plan de Tests d'Intégration — Nextcloud Marketplace"
 status: "accepted"
-date: 2026-05-12
+date: 2026-05-25
 superseded_by: null
 replaces: null
 related_adrs: [200, 300, 302, 600, 601, 602, 611, 613, 614, 617, 800]
@@ -122,8 +122,11 @@ déclenché** (sentinel absent).
 | T-IMAGE-08 | Pas de credentials dans `config.php` | US-02.4 | `! grep -q 'dbpassword.*[^$\{]' /var/www/nextcloud/config/config.php` |
 | T-IMAGE-09 | SSH `PasswordAuthentication no` (ADR-300) | ADR-300, US-03.2 | `grep -r 'PasswordAuthentication no' /etc/ssh/` |
 | T-IMAGE-10 | UFW actif (ADR-300) | ADR-300 | `ufw status \| grep 'Status: active'` |
+| T-IMAGE-11 | Azure Linux Agent ≥ 2.2.10 (ADR-300 #20) | ADR-300, pol. 200.3.3 | `waagent --version \| grep -oE '[0-9]+\.[0-9]+\.[0-9]+'` |
+| T-IMAGE-12 | Driver `hv_netvsc` chargé ou compilé (ADR-300 #17) | ADR-300, pol. 200.3.3 | `lsmod \| grep hv_netvsc` |
+| T-IMAGE-13 | Pas de partition swap active (ADR-300 #18) | ADR-300, pol. 200.3.3 | `swapon --show \| wc -l` = 0 |
 
-**Critère de succès** : T-IMAGE-01 à T-IMAGE-10 tous PASS → build gallery validé.
+**Critère de succès** : T-IMAGE-01 à T-IMAGE-13 tous PASS → build gallery validé.
 
 ---
 
@@ -145,8 +148,9 @@ déclenché** (sentinel absent).
 | T-E2E-09 | `journalctl` entries firstboot présentes | US-02.5 | `journalctl -u nc-firstboot -n 1` |
 | T-E2E-10 | TLS 1.0 désactivé | ADR-300, US-03.3 | `openssl s_client -tls1` → doit échouer |
 | T-E2E-11 | Ports 22 et 443 ouverts, autres fermés | ADR-300 | `nc -z -w 3 <IP> <port>` |
+| T-E2E-12 | Checklist certifiable Niveau 3 (ADR-701) | ADR-300, ADR-701, pol. 200 | `marketplace-cert.sh` — PASS et FAIL = 0 |
 
-**Critère de succès** : T-E2E-01 à T-E2E-11 tous PASS → prêt pour publication Preview.
+**Critère de succès** : T-E2E-01 à T-E2E-12 tous PASS → prêt pour publication Preview.
 
 ---
 
@@ -192,7 +196,7 @@ integration-test          ## Suite complète : phases 1 + 2 + 3
 | ADR | Conformité |
 |-----|-----------|
 | **ADR-613** | Versions canoniques vérifiées (PHP 8.2, Nginx, MariaDB 10.6+, Redis ≤7.2, Nextcloud Hub) |
-| **ADR-300** | SSH clé uniquement, TLS 1.2+, UFW ports 22+443 validés (T-STATIC-10, T-IMAGE-09, T-E2E-10) |
+| **ADR-300** | SSH clé uniquement, TLS 1.2+, UFW ports 22+443 validés (T-STATIC-10, T-IMAGE-09, T-E2E-10) ; exigences Linux Azure 200.3.3/200.4/200.5 validées (T-IMAGE-11–13, T-E2E-12) |
 | **ADR-601** | Script nommé `integration-test.sh` (objet-action, kebab-case) |
 | **ADR-602** | Makefile délègue au script — règle des 3 lignes respectée |
 | **ADR-611** | Couleurs `RED`/`GREEN`/`YELLOW`/`CYAN` via `printf`, aucun `echo -e` |

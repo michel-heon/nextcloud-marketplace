@@ -2,7 +2,7 @@
 adr: 300
 title: "Sécurité VM — Hardening OS Ubuntu pour Certification Azure Marketplace"
 status: "accepted"
-date: 2026-02-22
+date: 2026-05-25
 superseded_by: null
 replaces: null
 related_adrs: [200, 800]
@@ -165,7 +165,12 @@ apt-get update && apt-get upgrade -y && apt-get autoremove -y
 
 ---
 
-## ✅ Checklist 15 Tests Certification Microsoft
+## ✅ Checklist Tests Certification Microsoft (politique 200)
+
+> Mise à jour 2026-05-25 : ajout des contrôles manquants découverts lors de l'audit
+> de couverture vs politique officielle sections 200.3.3, 200.4 et 200.5.
+
+### Contrôles OS et Agent (200.3.3)
 
 | # | Test | Décision | Provisioner |
 |---|------|----------|-------------|
@@ -184,6 +189,24 @@ apt-get update && apt-get upgrade -y && apt-get autoremove -y
 | 13 | Mise à jour OS récente | ✅ | `security-harden.sh` |
 | 14 | `cloud-init` opérationnel | ✅ | `waagent-cloud-init.sh` |
 | 15 | Extensions Azure acceptées (`allowExtensionOperations`) | ✅ | `waagent-cloud-init.sh` |
+
+### Contrôles Plateforme Linux Azure (200.3.3 / 200.4)
+
+| # | Test | Décision | Provisioner |
+|---|------|----------|-------------|
+| 16 | Architecture OS 64-bit (x86_64 ou aarch64) | ✅ | Image Ubuntu endorsée |
+| 17 | Driver `hv_netvsc` chargé ou compilé (Hyper-V réseau) | ✅ | Kernel Ubuntu HWE |
+| 18 | Pas de partition swap active sur l'OS disk | ✅ | Packer — pas de swap dans cloud-init |
+| 19 | `console=ttyS0` dans `GRUB_CMDLINE_LINUX` (serial console Azure) | ✅ | `install-base.sh` ou grub config |
+| 20 | Azure Linux Agent ≥ 2.2.10 | ✅ | `waagent-cloud-init.sh` |
+
+### Contrôles Propreté Image (200.5)
+
+| # | Test | Décision | Provisioner |
+|---|------|----------|-------------|
+| 21 | Clés SSH de build (`authorized_keys`) absentes dans `/root` et `/home` | ✅ | `generalize.sh` |
+| 22 | OpenSSL ≥ 1.0 installé | ✅ | `install-base.sh` |
+| 23 | Aucun antivirus/EDR (Microsoft Defender/MDATP) pré-installé | ✅ | `generalize.sh` — non installé |
 
 ---
 

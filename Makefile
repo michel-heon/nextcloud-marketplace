@@ -45,13 +45,51 @@ TERRAFORM_DIR := terraform
 IMAGE_VERSION ?= 0.1.0
 ENVIRONMENT   ?= dev
 
+# VM de test E2E (peut être surchargé : make vm-ensure E2E_RG=autre-rg)
+E2E_RG ?= rg-nextcloud-test
+CTT     := image-tests/marketplace-ctt.sh
+
 SHELL := /bin/bash
 
-# Colors
-CYAN   := \033[36m
+# ---------------------------------------------------------------------------
+# Couleurs (ADR-611 — utiliser @printf, jamais @echo -e)
+# ---------------------------------------------------------------------------
+RED    := \033[0;31m
+GREEN  := \033[0;32m
 YELLOW := \033[0;33m
-RESET  := \033[0m
+BLUE   := \033[0;34m
+CYAN   := \033[0;36m
 BOLD   := \033[1m
+RESET  := \033[0m
+NC     := \033[0m
+
+# ---------------------------------------------------------------------------
+# Macros de log (ADR-611 — utiliser $(call log_*,message) dans les targets)
+# ---------------------------------------------------------------------------
+define log_action
+	@printf "$(CYAN)➤ $(1)$(NC)\n"
+endef
+
+define log_success
+	@printf "$(GREEN)✓ $(1)$(NC)\n"
+endef
+
+define log_warning
+	@printf "$(YELLOW)⚠ $(1)$(NC)\n"
+endef
+
+define log_error
+	@printf "$(RED)✗ $(1)$(NC)\n"
+endef
+
+define log_info
+	@printf "$(BLUE)ℹ $(1)$(NC)\n"
+endef
+
+# ---------------------------------------------------------------------------
+# Variables calculées
+# ---------------------------------------------------------------------------
+BUILD_DATE := $(shell date +%Y%m%d)
 
 .DEFAULT_GOAL := help
 
@@ -62,7 +100,11 @@ BOLD   := \033[1m
         playwright-install \
         vm-test-create vm-test-delete vm-test-ssh vm-test-status \
         vm-test-smoke vm-test-service vm-test-e2e vm-test-cert vm-test-all \
-        vm-test-dns-assign vm-test-dns-e2e
+        vm-test-dns-assign vm-test-dns-e2e \
+        vm-ensure vm-stop vm-start vm-delete vm-status image-id \
+        vm-dns-assign vm-dns-assign-reboot vm-firstboot-reset vm-reset-admin \
+        marketplace-info marketplace-validate marketplace-all marketplace-test marketplace-tests \
+        marketplace-gallery-permissions
 
 help: ## Show available targets
 	@echo ""
@@ -313,3 +355,79 @@ vm-test-dns-assign: ## Assigner un nom DNS à la VM de test et enregistrer le FQ
 
 vm-test-dns-e2e: ## Tests E2E Playwright via nom DNS (après vm-test-dns-assign)
 	@npx playwright test --config image-tests/playwright/playwright.config.js
+
+# ------------------------------------------------------------
+##@ Marketplace — Validation Azure (ADR-800)
+# ------------------------------------------------------------
+
+vm-ensure: env-check ## Créer la VM de test Nextcloud si elle n'existe pas (depuis dernière image gallery)
+	$(call log_action,Vérification / création VM de test...)
+	@E2E_RG=$(E2E_RG) bash image-tests/vm-create.sh
+
+vm-stop: ## Deallocater la VM de test Nextcloud
+	$(call log_action,Arrêt de la VM de test...)
+	@STATE=$$(grep '^TEST_VM_NAME=' .image-test-state 2>/dev/null | cut -d= -f2); \
+	az vm deallocate --resource-group $(E2E_RG) --name "$${STATE}" --no-wait
+
+vm-start: ## Démarrer la VM de test Nextcloud
+	$(call log_action,Démarrage de la VM de test...)
+	@STATE=$$(grep '^TEST_VM_NAME=' .image-test-state 2>/dev/null | cut -d= -f2); \
+	az vm start --resource-group $(E2E_RG) --name "$${STATE}"
+
+vm-delete: ## Supprimer la VM de test Nextcloud et son resource group
+	$(call log_action,Suppression de la VM de test...)
+	@bash image-tests/vm-delete.sh
+
+vm-status: ## Afficher l'état, l'IP et l'URL de la VM de test
+	$(call log_action,Statut de la VM de test...)
+	@bash image-tests/vm-status.sh
+
+image-id: ## Afficher l'ID et la version de la dernière image gallery
+	$(call log_action,Récupération de l'ID image gallery...)
+	@az sig image-version list \
+		--resource-group $(GALLERY_RESOURCE_GROUP) \
+		--gallery-name $(GALLERY_NAME) \
+		--gallery-image-definition $(GALLERY_IMAGE_NAME) \
+		--query "sort_by(@, &name)[-1].{Version:name, ID:id, State:provisioningState}" \
+		--output table
+
+vm-dns-assign: ## Assigner un label DNS à l'IP publique de la VM de test
+	$(call log_action,Attribution d'un label DNS à la VM de test...)
+	@bash image-tests/vm-dns.sh
+
+vm-dns-assign-reboot: ## Assigner le DNS puis rebooter la VM (auto-config via IMDS au démarrage)
+	$(call log_action,Attribution DNS + redémarrage de la VM de test...)
+	@bash image-tests/vm-dns.sh
+	@STATE=$$(grep '^TEST_VM_NAME=' .image-test-state 2>/dev/null | cut -d= -f2); \
+	az vm restart --resource-group $(E2E_RG) --name "$${STATE}"
+	$(call log_success,VM redémarrée — nc-first-boot se relancera avec le FQDN)
+
+vm-firstboot-reset: ## Effacer le sentinel + relancer nc-first-boot avec le FQDN courant
+	$(call log_action,Réinitialisation de nc-first-boot sur la VM de test...)
+	@bash image-tests/vm-firstboot-reset.sh
+
+vm-reset-admin: ## Réinitialiser le mot de passe admin Nextcloud (occ user:resetpassword)
+	$(call log_action,Réinitialisation du mot de passe admin Nextcloud...)
+	@bash image-tests/vm-reset-admin.sh
+
+marketplace-info: ## Afficher les infos sur la validation Marketplace CTT (ADR-800)
+	@bash $(CTT) info
+
+marketplace-validate: vm-ensure ## Valider conformité Azure Marketplace sur VM de test
+	@bash $(CTT) validate
+
+marketplace-all: vm-ensure ## Exécuter tous les tests CTT (alias validate)
+	@bash $(CTT) all
+
+marketplace-test: ## Exécuter un test CTT spécifique (TEST=nom)
+	@bash $(CTT) test $(TEST)
+
+marketplace-tests: ## Lister les tests CTT disponibles
+	@bash $(CTT) list
+
+marketplace-gallery-permissions: ## Configurer les permissions ACG pour Partner Center (ADR-800 Décision 1)
+	$(call log_action,Configuration des permissions Azure Compute Gallery pour Partner Center...)
+	@GALLERY_NAME=$(GALLERY_NAME) \
+		GALLERY_RESOURCE_GROUP=$(GALLERY_RESOURCE_GROUP) \
+		bash image-tests/marketplace-gallery-permissions.sh
+	$(call log_success,Permissions gallery configurées — Partner Center peut accéder à la gallery)
