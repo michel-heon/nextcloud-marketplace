@@ -62,7 +62,7 @@ ExecStartPost=/bin/bash -c "mkdir -p /etc/nextcloud && touch /etc/nextcloud/.fir
 RemainAfterExit=no
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=cloud-init.target
 EOF
 
 systemctl enable nextcloud-first-boot.service

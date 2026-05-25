@@ -95,11 +95,11 @@ write_files:
       NC_DB_PASSWORD=${TEST_NC_DB_PASS}
       REDIS_PASSWORD=${TEST_REDIS_PASS}
       NC_TRUSTED_DOMAIN=localhost
-# nextcloud-first-boot.service est activé (WantedBy=multi-user.target)
-# et démarre automatiquement après cloud-init.target (After=cloud-init.target).
-# Pas de runcmd nécessaire — le démarrage manuel depuis runcmd bypasserait
-# les dépendances After= et risquerait un démarrage avant que postgres/redis
-# soient prêts.
+# nextcloud-first-boot.service est active (WantedBy=cloud-init.target)
+# et demarre automatiquement apres que cloud-init.target soit atteint.
+# Pas de runcmd necessaire - le demarrage manuel depuis runcmd bypasserait
+# les dependances After= et risquerait un demarrage avant que postgres/redis
+# soient prets.
 CLOUDINIT
 
 # --- VM creation ---
