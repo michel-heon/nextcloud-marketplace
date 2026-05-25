@@ -45,19 +45,22 @@ TERRAFORM_DIR := terraform
 IMAGE_VERSION ?= 0.1.0
 ENVIRONMENT   ?= dev
 
+SHELL := /bin/bash
+
 # Colors
-CYAN  := \033[36m
-RESET := \033[0m
-BOLD  := \033[1m
+CYAN   := \033[36m
+YELLOW := \033[0;33m
+RESET  := \033[0m
+BOLD   := \033[1m
 
 .DEFAULT_GOAL := help
 
-.PHONY: help init validate image-build image-build-debug deploy tf-init tf-plan tf-apply \
+.PHONY: help init validate image-build image-build-force image-build-debug deploy tf-init tf-plan tf-apply \
         test lint clean sysprep env-check azure-login \
         infra-rg infra-gallery infra-image-def infra-create \
         storage-create storage-upload storage-verify storage-list storage-urls \
         playwright-install \
-        vm-test-create vm-test-delete vm-test-ssh \
+        vm-test-create vm-test-delete vm-test-ssh vm-test-status \
         vm-test-smoke vm-test-service vm-test-e2e vm-test-cert vm-test-all \
         vm-test-dns-assign vm-test-dns-e2e
 
@@ -136,6 +139,7 @@ validate: ## Validate Packer templates (no build)
 		.
 
 image-build: env-check validate ## Build the Nextcloud VM image
+	@TMPLOG=$$(mktemp); \
 	cd $(PACKER_DIR) && packer build \
 		-var "subscription_id=$(AZURE_SUBSCRIPTION_ID)" \
 		-var "tenant_id=$(AZURE_TENANT_ID)" \
@@ -146,7 +150,35 @@ image-build: env-check validate ## Build the Nextcloud VM image
 		-var "image_version=$(IMAGE_VERSION)" \
 		-var "environment=$(ENVIRONMENT)" \
 		-var "blob_storage_base_url=$(BLOB_STORAGE_BASE_URL)" \
-		.
+		. 2>&1 | tee "$$TMPLOG"; \
+	EXIT=$${PIPESTATUS[0]}; \
+	if [[ $$EXIT -eq 0 ]]; then \
+		sed -i 's/^IMAGE_VERSION=.*/IMAGE_VERSION=$(IMAGE_VERSION)/' "$(CURDIR)/env/.env"; \
+		printf "$(GREEN)✓  env/.env mis à jour : IMAGE_VERSION=$(IMAGE_VERSION)$(RESET)\n"; \
+	elif grep -q "already exists in gallery" "$$TMPLOG"; then \
+		printf "\n$(YELLOW)⚠  La version $(IMAGE_VERSION) existe déjà dans la gallery.$(RESET)\n\n"; \
+		printf "   $(CYAN)Option 1 — Bumper la version$(RESET) (recommandé) :\n"; \
+		printf "     make image-build IMAGE_VERSION=<nouvelle-version>\n\n"; \
+		printf "   $(CYAN)Option 2 — Écraser la version existante$(RESET) :\n"; \
+		printf "     make image-build-force\n\n"; \
+	fi; \
+	rm -f "$$TMPLOG"; \
+	exit $$EXIT
+
+image-build-force: env-check validate ## Build the Nextcloud VM image (force overwrite existing version)
+	@cd $(PACKER_DIR) && packer build -force \
+		-var "subscription_id=$(AZURE_SUBSCRIPTION_ID)" \
+		-var "tenant_id=$(AZURE_TENANT_ID)" \
+		-var "build_resource_group=$(BUILD_RESOURCE_GROUP)" \
+		-var "gallery_resource_group=$(GALLERY_RESOURCE_GROUP)" \
+		-var "gallery_name=$(GALLERY_NAME)" \
+		-var "gallery_image_name=$(GALLERY_IMAGE_NAME)" \
+		-var "image_version=$(IMAGE_VERSION)" \
+		-var "environment=$(ENVIRONMENT)" \
+		-var "blob_storage_base_url=$(BLOB_STORAGE_BASE_URL)" \
+		. && \
+		sed -i 's/^IMAGE_VERSION=.*/IMAGE_VERSION=$(IMAGE_VERSION)/' "$(CURDIR)/env/.env" && \
+		printf "$(GREEN)✓  env/.env mis à jour : IMAGE_VERSION=$(IMAGE_VERSION)$(RESET)\n"
 
 image-build-debug: env-check ## Build the Nextcloud VM image (debug mode)
 	cd $(PACKER_DIR) && PACKER_LOG=1 packer build \
@@ -248,12 +280,19 @@ playwright-install: ## Installer Playwright et les navigateurs (une seule fois)
 
 vm-test-create: env-check ## Créer une VM de test depuis la gallery (IMAGE_VERSION)
 	@bash image-tests/vm-create.sh
+	@if [[ -f .image-test-state ]]; then \
+		VM_IP=$$(grep '^TEST_VM_IP=' .image-test-state | cut -d= -f2); \
+		printf "\n$(BOLD)$(CYAN)  → Nextcloud : https://$$VM_IP$(RESET)\n\n"; \
+	fi
 
 vm-test-delete: ## Supprimer la VM de test et son resource group
 	@bash image-tests/vm-delete.sh
 
 vm-test-ssh: ## Ouvrir une session SSH vers la VM de test
 	@bash image-tests/vm-ssh.sh
+
+vm-test-status: ## Afficher l'état de la VM de test (URLs, PowerState, joignabilité)
+	@bash image-tests/vm-status.sh
 
 vm-test-smoke: ## Tests niveau 1 — smoke (VM active, SSH, firstboot)
 	@bash image-tests/smoke-test.sh

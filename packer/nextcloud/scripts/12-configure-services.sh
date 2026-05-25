@@ -51,7 +51,6 @@ cat > /etc/systemd/system/nextcloud-first-boot.service <<'EOF'
 Description=Nextcloud first-boot database installation and configuration
 After=network-online.target postgresql.service redis-server.service nginx.service cloud-init.target
 Wants=network-online.target
-ConditionPathExists=/var/lib/cloud/instance/boot-finished
 # Disable after first successful run
 ConditionPathExists=!/etc/nextcloud/.first-boot-complete
 

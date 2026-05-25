@@ -95,6 +95,11 @@ write_files:
       NC_DB_PASSWORD=${TEST_NC_DB_PASS}
       REDIS_PASSWORD=${TEST_REDIS_PASS}
       NC_TRUSTED_DOMAIN=localhost
+# nextcloud-first-boot.service est activé (WantedBy=multi-user.target)
+# et démarre automatiquement après cloud-init.target (After=cloud-init.target).
+# Pas de runcmd nécessaire — le démarrage manuel depuis runcmd bypasserait
+# les dépendances After= et risquerait un démarrage avant que postgres/redis
+# soient prêts.
 CLOUDINIT
 
 # --- VM creation ---
@@ -155,7 +160,7 @@ done
 ok "SSH accessible"
 
 # --- Wait for firstboot ---
-info "Attente de la fin du firstboot Nextcloud (timeout : 10 min)..."
+info "Attente du firstboot Nextcloud (sonde toutes les 15s, max 10 min)..."
 TIMEOUT=600
 ELAPSED=0
 FIRSTBOOT_DONE=false

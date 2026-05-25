@@ -98,6 +98,13 @@ systemctl start nextcloud-cron.timer
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] Removing ephemeral credentials file"
 shred -u "${CONFIG_ENV}" 2>/dev/null || rm -f "${CONFIG_ENV}"
 
+# --- Mark first-boot as complete ---
+# Créé ici (dans le script) et pas seulement dans ExecStartPost,
+# car ExecStartPost ne s'exécute que si ExecStart réussit.
+mkdir -p /etc/nextcloud
+touch /etc/nextcloud/.first-boot-complete
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] Marqueur /etc/nextcloud/.first-boot-complete créé"
+
 echo "============================================================"
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] Nextcloud first-boot setup COMPLETE"
 echo "============================================================"
