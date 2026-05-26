@@ -70,12 +70,11 @@ Caractères : ~1890 / 2048 ✅
 
 <h2>Who benefits</h2>
 <ul>
-  <li><strong>Universities and research institutions</strong> — store, share, and version research data, publications, and project files; integrate with Microsoft Entra ID for federated campus authentication; meet GDPR and institutional data sovereignty policies</li>
+  <li><strong>Universities and research institutions</strong> — share and version research data; integrate with Microsoft Entra ID for federated authentication; meet GDPR and data sovereignty policies</li>
   <li><strong>Healthcare and life sciences organizations</strong> — keep patient data and clinical files within a specific Azure region; data never leaves your subscription; no third-party cloud provider involved</li>
   <li><strong>Enterprises replacing public cloud storage</strong> — eliminate per-user SaaS fees; migrate from OneDrive, Google Drive, or Dropbox to a self-hosted platform under full IT control</li>
-  <li><strong>Government agencies and public-sector organizations</strong> — meet national data residency and sovereignty mandates; keep citizen data within your Azure subscription and region; integrate with existing identity providers via SAML 2.0 / OIDC</li>
-  <li><strong>Non-profit organizations</strong> — replace costly per-user SaaS subscriptions with a self-hosted open-source platform; full collaboration suite (files, video, calendars, office editing) with no recurring licensing fees</li>
-  <li><strong>SMBs and distributed teams</strong> — deploy a full collaboration suite (files, video, calendars, contacts, office editing) on a single VM with predictable Azure compute costs</li>
+  <li><strong>Government and public-sector</strong> — meet data residency mandates; keep citizen data within your Azure region; integrate via SAML 2.0 / OIDC</li>
+  <li><strong>Non-profits and SMBs</strong> — cut per-user SaaS fees; deploy files, calendars, and contacts on a single VM with predictable Azure compute costs</li>
 </ul>
 
 <h2>Key capabilities</h2>
@@ -84,7 +83,7 @@ Caractères : ~1890 / 2048 ✅
   <li><strong>Calendars and contacts</strong> — CalDAV and CardDAV servers compatible with macOS, iOS, Outlook, and Android; shared calendars and address books included</li>
   <li><strong>HTTPS with modern TLS</strong> — TLS 1.2/1.3 enforced, HTTP-to-HTTPS redirect, HSTS, OCSP stapling, and security headers (X-Frame-Options, X-Content-Type-Options, Referrer-Policy) pre-configured in Nginx</li>
   <li><strong>Redis object cache</strong> — APCu local cache and Redis distributed/locking cache pre-configured; reduces database load and improves response time under concurrent users</li>
-  <li><strong>Certbot pre-installed</strong> — run <code>certbot --nginx -d your.domain.com</code> after deployment to obtain and auto-renew a Let's Encrypt certificate; ACME challenge route already configured in Nginx</li>
+  <li><strong>Certbot pre-installed</strong> — run after deployment to issue and auto-renew a Let's Encrypt certificate; ACME challenge route pre-configured in Nginx</li>
   <li><strong>Rich app ecosystem</strong> — Nextcloud Hub 33 includes Talk (video calls), Nextcloud Office (document editing), and Entra ID / SAML integration as built-in apps; enable and configure from the Admin panel after first boot</li>
 </ul>
 
@@ -93,7 +92,6 @@ Caractères : ~1890 / 2048 ✅
   <li><strong>Nextcloud Hub 33</strong> — the latest stable release of the leading open-source file collaboration platform, trusted by over 400,000 organizations worldwide</li>
   <li><strong>PHP-FPM 8.3</strong>, <strong>PostgreSQL 16</strong>, <strong>Redis 7</strong>, and <strong>Nginx 1.24</strong> — a performance-tuned, production-ready stack</li>
   <li><strong>Ubuntu 24.04 LTS</strong> — long-term supported base OS, supported until April 2029 (standard) and 2034 (ESM)</li>
-  <li>Redis object cache pre-configured — reduces database load and improves response time under concurrent users</li>
   <li>Self-signed HTTPS certificate generated at image build time — replace with a Let's Encrypt certificate using the pre-installed Certbot, or supply your own CA-signed certificate</li>
 </ul>
 
@@ -109,8 +107,8 @@ Caractères : ~1890 / 2048 ✅
   <li>Built and validated against Azure Marketplace certification requirements</li>
 </ul>
 
-<h2>Data sovereignty and compliance</h2>
-<p>All data — files, user accounts, calendars, contacts, and configuration — resides exclusively within your Azure subscription and the Azure region you select. Cotechnoe has no access to your data. Fully compatible with GDPR obligations for EU-based deployments. No telemetry or data is sent to Cotechnoe.</p>
+<h2>Data sovereignty</h2>
+<p>All data stays within your Azure subscription and region. No telemetry sent to Cotechnoe. GDPR-compatible by design.</p>
 
 <h2>Get started in minutes</h2>
 <p>Select a VM size — Standard_B2ms for evaluation, Standard_D2s_v3 (recommended default) or larger for production — deploy from Azure Marketplace, and complete the first-boot wizard to set your domain and administrator credentials. Full documentation is available at the support link below.</p>
@@ -118,7 +116,7 @@ Caractères : ~1890 / 2048 ✅
 <p><em>Nextcloud is a registered trademark of Nextcloud GmbH, Stuttgart, Germany. This offer is published by Cotechnoe and is not affiliated with or endorsed by Nextcloud GmbH.</em></p>
 ```
 
-Caractères : ~4200 / 5000 ✅
+Caractères : ~4900 / 5000 ✅
 
 ---
 
