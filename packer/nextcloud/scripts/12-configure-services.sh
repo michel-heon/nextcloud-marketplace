@@ -114,6 +114,15 @@ set_kv() {
 	fi
 }
 
+set_redis_kv() {
+	local file="$1" key="$2" value="$3"
+	if grep -Eq "^[#[:space:]]*${key}[[:space:]]+" "${file}"; then
+		sed -E -i "s|^[#[:space:]]*(${key})[[:space:]]+.*|\1 ${value}|" "${file}"
+	else
+		printf "\n%s %s\n" "${key}" "${value}" >> "${file}"
+	fi
+}
+
 # PHP-FPM
 PHP_WWW_CONF=""
 for candidate in /etc/php/*/fpm/pool.d/www.conf; do
@@ -153,7 +162,7 @@ REDIS_CONF="/etc/redis/redis.conf"
 if [[ -f "${REDIS_CONF}" ]]; then
 	redis_max_mb=$((MEM_MB * 10 / 100))
 	redis_max_mb="$(clamp "${redis_max_mb}" 128 2048)"
-	set_kv "${REDIS_CONF}" "maxmemory" "${redis_max_mb}mb"
+	set_redis_kv "${REDIS_CONF}" "maxmemory" "${redis_max_mb}mb"
 	echo "[$(date '+%Y-%m-%d %H:%M:%S')] tuned Redis maxmemory=${redis_max_mb}mb"
 fi
 

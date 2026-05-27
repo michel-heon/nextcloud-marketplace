@@ -46,7 +46,7 @@ else
     fail "Dernière exécution systemd non réussie (Result=${AUTO_RESULT})"
 fi
 
-LOG_LAST=$(ssh_run "tail -n 2 /var/log/nextcloud/runtime-autotune.log 2>/dev/null | tr '\n' '|'" || echo "")
+LOG_LAST=$(ssh_run "sudo tail -n 2 /var/log/nextcloud/runtime-autotune.log 2>/dev/null | tr '\n' '|'" || echo "")
 if echo "${LOG_LAST}" | grep -q "runtime auto-tuning complete"; then
     pass "Log auto-tuning présent et complet"
 else
@@ -90,8 +90,8 @@ PHP_WWW_CONF=$(ssh_run "ls /etc/php/*/fpm/pool.d/www.conf 2>/dev/null | head -1"
 if [[ -z "${PHP_WWW_CONF}" ]]; then
     fail "Fichier PHP-FPM www.conf introuvable"
 else
-    ACT_PM_MAX=$(ssh_run "awk -F= '/^[[:space:]]*pm.max_children/{gsub(/[[:space:]]/,\"\",\$2); print \$2; exit}' ${PHP_WWW_CONF}" || echo "")
-    ACT_PHP_LIMIT=$(ssh_run "awk -F= '/php_admin_value\\[memory_limit\\]/{gsub(/[[:space:]]/,\"\",\$2); print \$2; exit}' ${PHP_WWW_CONF}" || echo "")
+    ACT_PM_MAX=$(ssh_run "awk -F= '/^[[:space:]]*pm.max_children/{v=\$2} END{if(v!=\"\"){gsub(/[[:space:]]/,\"\",v); print v}}' ${PHP_WWW_CONF}" || echo "")
+    ACT_PHP_LIMIT=$(ssh_run "awk -F= '/php_admin_value\\[memory_limit\\]/{v=\$2} END{if(v!=\"\"){gsub(/[[:space:]]/,\"\",v); print v}}' ${PHP_WWW_CONF}" || echo "")
 
     if [[ "${ACT_PM_MAX}" == "${EXP_PM_MAX}" ]]; then
         pass "pm.max_children=${ACT_PM_MAX} (attendu ${EXP_PM_MAX})"
@@ -108,7 +108,7 @@ fi
 
 echo ""
 echo "--- 4. Vérification Redis ---"
-ACT_REDIS=$(ssh_run "awk '/^[[:space:]]*maxmemory[[:space:]]/{print \$2; exit}' /etc/redis/redis.conf 2>/dev/null" || echo "")
+ACT_REDIS=$(ssh_run "sudo awk '/^[[:space:]]*maxmemory[[:space:]]/{line=\$0} END {if (line != \"\") {gsub(/^[[:space:]]*maxmemory[[:space:]]*=?[[:space:]]*/, \"\", line); print line}}' /etc/redis/redis.conf 2>/dev/null" || echo "")
 if [[ "${ACT_REDIS}" == "${EXP_REDIS}" ]]; then
     pass "redis maxmemory=${ACT_REDIS} (attendu ${EXP_REDIS})"
 else
@@ -121,7 +121,7 @@ PG_CONF=$(ssh_run "ls /etc/postgresql/*/main/postgresql.conf 2>/dev/null | head 
 if [[ -z "${PG_CONF}" ]]; then
     fail "Fichier postgresql.conf introuvable"
 else
-    ACT_PG_SHARED=$(ssh_run "awk -F= '/^[#[:space:]]*shared_buffers[[:space:]]*=/{v=\$2; gsub(/^[[:space:]]+|[[:space:]]+$/,\"\",v); print v; exit}' ${PG_CONF}" || echo "")
+    ACT_PG_SHARED=$(ssh_run "awk -F= '/^[#[:space:]]*shared_buffers[[:space:]]*=/{v=\$2} END{if(v!=\"\"){gsub(/^[[:space:]]+|[[:space:]]+$/,\"\",v); print v}}' ${PG_CONF}" || echo "")
     if [[ "${ACT_PG_SHARED}" == "${EXP_PG_SHARED}" ]]; then
         pass "postgresql shared_buffers=${ACT_PG_SHARED} (attendu ${EXP_PG_SHARED})"
     else
