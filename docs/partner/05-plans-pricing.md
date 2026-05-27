@@ -100,20 +100,22 @@ Champs vus dans Partner Center :
 
 Texte recommandé prêt à coller :
 
-**Plan summary** (138/150)
+**Plan summary** (145/150)
 
 ```text
-Pre-configured self-hosted Nextcloud VM on Azure with secure file sharing, SSO-ready setup, and data sovereignty in your own subscription.
+Pre-configured self-hosted Nextcloud 33.0.3 VM on Azure with secure file sharing, SSO-ready setup, and data sovereignty in your own subscription.
 ```
 
 **Plan description** (HTML léger, 1109/3000)
 
 ```html
-<p><strong>Cotechnoe Cloud Hub — Standard</strong> is a pre-configured, self-hosted Nextcloud VM for organizations that need secure collaboration with full control of data residency on Azure. Deploy from Azure Marketplace and complete the first-boot wizard to configure domain and admin credentials.</p>
+<p><strong>Cotechnoe Cloud Hub — Standard</strong> is a pre-configured, self-hosted Nextcloud 33.0.3 VM for organizations that need secure collaboration with full control of data residency on Azure. Deploy from Azure Marketplace and complete the first-boot wizard to configure domain and admin credentials.</p>
 
-<p><strong>Included platform stack:</strong> Ubuntu 24.04 LTS, Nginx, PHP-FPM 8.3, PostgreSQL 16, Redis 7.</p>
+<p><strong>Included platform stack:</strong> Ubuntu 24.04 LTS, Nginx, Nextcloud 33.0.3, PHP-FPM 8.3, PostgreSQL 16, Redis 7.</p>
 
 <p><strong>Security baseline:</strong> SSH key authentication, UFW with ports 22/80/443 only, PostgreSQL bound to localhost, automatic HTTP-to-HTTPS redirect, HSTS, fail2ban, and unattended security updates.</p>
+
+<p><strong>Automatic memory tuning:</strong> at boot, the image auto-configures key runtime parameters based on detected VM RAM (PHP-FPM workers/memory limit, Redis maxmemory, and PostgreSQL shared buffers) to keep performance consistent when scaling VM size.</p>
 
 <p>This plan is suitable for production pilots and small-to-medium teams. Recommended sizing starts at Standard_D2s_v3 (2 vCPU, 8 GB RAM) and scales to Standard_D4s_v3 and above based on users and workload.</p>
 

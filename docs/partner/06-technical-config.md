@@ -23,6 +23,7 @@ Choisir **Azure Compute Gallery** (recommandé par Microsoft pour les VM Marketp
 | **Gallery** | `galNCMarketplace` |
 | **Image definition** | `nextcloud-server` |
 | **Image version** | `6.0.20260517` (ou la version courante) |
+| **Nextcloud version déployée dans ce plan** | `33.0.3` |
 | **VM generation** | Gen 2 (Hyper-V V2) |
 | **OS type** | Linux |
 | **Security type** | Trusted launch |
