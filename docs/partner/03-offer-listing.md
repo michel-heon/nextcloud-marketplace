@@ -1,8 +1,8 @@
 # Étape 3 — Offer Listing
 
 > Partner Center : Offer → **Offer listing**  
-> Sources : [description-courte.md](../../nextcloud-azure-marketplace-doc/docs/marketplace/description-courte.md)
->           [description-longue.md](../../nextcloud-azure-marketplace-doc/docs/marketplace/description-longue.md)
+> Sources : [description-courte.md](https://github.com/Cotechnoe/nextcloud-azure-marketplace-doc/blob/main/docs/marketplace/description-courte.md)
+>           [description-longue.md](https://github.com/Cotechnoe/nextcloud-azure-marketplace-doc/blob/main/docs/marketplace/description-longue.md)
 
 ---
 
@@ -122,9 +122,7 @@ Caractères : ~4900 / 5000 ✅
 
 ### Privacy policy URL
 
-```
-https://github.com/Cotechnoe/nextcloud-azure-marketplace-doc/blob/main/PRIVACY.md
-```
+[PRIVACY.md](https://github.com/Cotechnoe/nextcloud-azure-marketplace-doc/blob/main/PRIVACY.md)
 
 ---
 
@@ -132,8 +130,13 @@ https://github.com/Cotechnoe/nextcloud-azure-marketplace-doc/blob/main/PRIVACY.m
 
 | Titre | URL |
 |-------|-----|
-| Documentation | `https://github.com/Cotechnoe/nextcloud-azure-marketplace-doc/wiki` |
-| Release notes | `https://github.com/Cotechnoe/nextcloud-azure-marketplace-doc/blob/main/docs/marketplace/release-notes-v1.md` |
+| Documentation | https://github.com/Cotechnoe/nextcloud-azure-marketplace-doc/wiki |
+| Release notes | https://github.com/Cotechnoe/nextcloud-azure-marketplace-doc/blob/main/docs/marketplace/release-notes-v1.md |
+| Nextcloud (site officiel) | https://nextcloud.com/ |
+| Nextcloud Admin Manual | https://docs.nextcloud.com/server/latest/admin_manual/ |
+| Nextcloud Security & Advisories | https://nextcloud.com/security/ |
+| Nextcloud Talk | https://nextcloud.com/talk/ |
+| Nextcloud Office | https://nextcloud.com/office/ |
 
 ---
 
@@ -143,7 +146,7 @@ https://github.com/Cotechnoe/nextcloud-azure-marketplace-doc/blob/main/PRIVACY.m
 |-------|--------|
 | **Name** | Cotechnoe Support |
 | **Email** | support@cotechnoe.com |
-| **URL** | `https://github.com/Cotechnoe/nextcloud-azure-marketplace-doc/wiki/Support` |
+| **URL** | https://github.com/Cotechnoe/nextcloud-azure-marketplace-doc/wiki/Support |
 
 ---
 
@@ -170,15 +173,17 @@ https://github.com/Cotechnoe/nextcloud-azure-marketplace-doc/blob/main/PRIVACY.m
 
 ### Screenshots (5 × 1280×720 px PNG)
 
-| # | Fichier | Contenu |
-|---|---------|---------|
-| 1 | `screenshot-01-dashboard.png` | Nextcloud Files view (HTTPS visible) |
-| 2 | `screenshot-02-admin-dashboard.png` | Admin Overview — tous les checks verts |
-| 3 | `screenshot-03-https-certificate.png` | Cadenas + certificat Let's Encrypt |
-| 4 | `screenshot-04-talk.png` | Nextcloud Talk (vidéoconférence) |
-| 5 | `screenshot-05-collabora.png` | Collabora Online — édition document |
+Fichiers générés automatiquement dans `assets/screenshots/` depuis la VM de test (`https://20.63.61.26`).
 
-Voir : [screenshots-guide.md](../../nextcloud-azure-marketplace-doc/docs/marketplace/screenshots-guide.md)
+| # | Fichier | URL capturée | Contenu |
+|---|---------|--------------|---------|
+| 1 | `screenshot-01-files-overview.png` | `https://20.63.61.26/index.php/apps/files/` | Vue fichiers (aperçu) |
+| 2 | `screenshot-02-admin-overview.png` | `https://20.63.61.26/index.php/settings/admin/overview` | Administration — Security & setup warnings |
+| 3 | `screenshot-03-admin-serverinfo.png` | `https://20.63.61.26/index.php/settings/admin/serverinfo` | Administration — Informations serveur (OS, CPU, RAM, charge) |
+| 4 | `screenshot-04-user-management.png` | `https://20.63.61.26/index.php/settings/users` | Administration — Gestion des utilisateurs et groupes |
+| 5 | `screenshot-05-user-security.png` | `https://20.63.61.26/index.php/settings/user/security` | Sécurité utilisateur (mot de passe, MFA/TOTP, backup codes) |
+
+Voir : [screenshots-guide.md](https://github.com/Cotechnoe/nextcloud-azure-marketplace-doc/blob/main/docs/marketplace/screenshots-guide.md)
 
 ---
 

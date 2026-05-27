@@ -99,7 +99,7 @@ BUILD_DATE := $(shell date +%Y%m%d)
         storage-create storage-upload storage-verify storage-list storage-urls \
         playwright-install \
         vm-test-create vm-test-delete vm-test-ssh vm-test-status \
-        vm-test-smoke vm-test-service vm-test-e2e vm-test-cert vm-test-all \
+	vm-test-smoke vm-test-service vm-test-autotune vm-test-e2e vm-test-cert vm-test-all \
         vm-test-dns-assign vm-test-dns-e2e \
         vm-ensure vm-stop vm-start vm-delete vm-status image-id \
         vm-dns-assign vm-dns-assign-reboot vm-firstboot-reset vm-reset-admin \
@@ -342,13 +342,16 @@ vm-test-smoke: ## Tests niveau 1 — smoke (VM active, SSH, firstboot)
 vm-test-service: ## Tests niveau 2 — services (systemd, Nextcloud, DB)
 	@bash image-tests/service-check.sh
 
+vm-test-autotune: ## Tests niveau 2 — auto-tuning post-boot (RAM -> PHP/Redis/PostgreSQL)
+	@bash image-tests/autotune-check.sh
+
 vm-test-e2e: ## Tests niveau 2 — E2E Playwright (navigateur Firefox)
 	@npx playwright test --config image-tests/playwright/playwright.config.js
 
 vm-test-cert: ## Tests niveau 3 — conformité Azure Marketplace
 	@bash image-tests/marketplace-cert.sh
 
-vm-test-all: vm-test-smoke vm-test-service vm-test-e2e vm-test-cert ## Lancer tous les niveaux de test
+vm-test-all: vm-test-smoke vm-test-service vm-test-autotune vm-test-e2e vm-test-cert ## Lancer tous les niveaux de test
 
 vm-test-dns-assign: ## Assigner un nom DNS à la VM de test et enregistrer le FQDN dans le state file
 	@bash image-tests/vm-dns.sh

@@ -27,6 +27,12 @@ source "azure-arm" "nextcloud" {
 
   os_type = "Linux"
 
+  # Microsoft best practice for Gen2 VM security: explicit Trusted Launch
+  # (avoid relying on subscription preview/default behavior)
+  security_type       = "TrustedLaunch"
+  secure_boot_enabled = true
+  vtpm_enabled        = true
+
   # Build VM size
   vm_size = var.vm_size
 
