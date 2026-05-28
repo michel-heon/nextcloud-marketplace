@@ -35,20 +35,15 @@ else
     "php${PHP_VERSION}-intl" \
     "php${PHP_VERSION}-bcmath" \
     "php${PHP_VERSION}-gmp" \
-    "php-imagick" \
     "php${PHP_VERSION}-apcu" \
     "php${PHP_VERSION}-opcache" \
     "php${PHP_VERSION}-ldap" \
     "php${PHP_VERSION}-imap" \
-    "php-smbclient" \
-    imagemagick
+    "php-smbclient"
 
-  log_info "Upgrading imagemagick to latest patched version (security — USN-7728-1, USN-7756-1, USN-8021-1, USN-8069-1, USN-8263-1)"
-  apt-get update -qq
-  apt-get install --only-upgrade -y \
-    -o Dpkg::Options::="--force-confdef" \
-    -o Dpkg::Options::="--force-confold" \
-    imagemagick
+  log_info "Ensuring imagemagick is absent — CVE USN-7728-1/USN-8263-1 (ESM-only patches on Noble 24.04, removal is the fix)"
+  apt-get purge -y imagemagick 'imagemagick*' 'libmagickcore*' 'libmagickwand*' 2>/dev/null || true
+  apt-get autoremove -y 2>/dev/null || true
 
   log_info "Enabling PHP-FPM on boot"
   systemctl enable "php${PHP_VERSION}-fpm"
