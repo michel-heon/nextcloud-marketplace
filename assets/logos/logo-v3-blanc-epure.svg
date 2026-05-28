@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 280" width="280" height="280">
+  <defs>
+    <!-- Gradient horizontal pour le nuage -->
+    <linearGradient id="cloudGrad3" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#0082C9"/>
+      <stop offset="100%" stop-color="#1CAFFF"/>
+    </linearGradient>
+
+    <!-- Ombre portée subtile sous le nuage -->
+    <filter id="shadow3" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="3" stdDeviation="4" flood-color="#0082C9" flood-opacity="0.15"/>
+    </filter>
+  </defs>
+
+  <!-- Fond blanc (épuré) avec liseré très subtil -->
+  <rect width="280" height="280" fill="#FFFFFF" rx="18"/>
+  <rect width="278" height="278" x="1" y="1" fill="none" stroke="#E0ECF6" stroke-width="1.5" rx="17"/>
+
+  <!-- Bande de couleur haute — accent Azure Marketplace -->
+  <rect width="280" height="5" fill="url(#cloudGrad3)" rx="0"/>
+  <rect width="280" height="5" fill="url(#cloudGrad3)" rx="18"/>
+
+  <g transform="translate(140 140) scale(1.12) translate(-140 -140)">
+
+  <!-- Nuage rempli en gradient bleu Nextcloud -->
+  <g fill="url(#cloudGrad3)">
+    <circle cx="107" cy="126" r="28"/>
+    <circle cx="140" cy="102" r="38"/>
+    <circle cx="173" cy="126" r="28"/>
+    <rect x="79" y="126" width="122" height="28"/>
+  </g>
+
+  <!-- Hexagone blanc (emblème abeille Cotechnoe) sur le nuage -->
+  <!-- Centre (140, 112), rayon 20 — flat-top -->
+  <polygon
+    points="157.3,102 140,92 122.7,102 122.7,122 140,132 157.3,122"
+    fill="rgba(255,255,255,0.22)"
+    stroke="rgba(255,255,255,0.80)"
+    stroke-width="2.4"
+    stroke-linejoin="round"/>
+
+  <!-- Mini-hexagone intérieur pour profondeur -->
+  <polygon
+    points="150.5,107.5 140,102 129.5,107.5 129.5,116.5 140,122 150.5,116.5"
+    fill="none"
+    stroke="rgba(255,255,255,0.50)"
+    stroke-width="1.2"/>
+
+  <!-- Nom "Cotechnoe" — bleu Nextcloud bold -->
+  <text
+    x="140" y="202"
+    text-anchor="middle"
+    font-family="Inter, 'Helvetica Neue', Arial, sans-serif"
+    font-weight="800"
+    font-size="25"
+    fill="#0082C9"
+    letter-spacing="0.3">Cotechnoe</text>
+
+  <!-- Sous-titre "CLOUD HUB VM" gris moyen -->
+  <text
+    x="140" y="226"
+    text-anchor="middle"
+    font-family="Inter, 'Helvetica Neue', Arial, sans-serif"
+    font-weight="700"
+    font-size="12.5"
+    fill="#5A7A9A"
+    letter-spacing="1.2">NEXTCLOUD AZURE</text>
+  </g>
+</svg>

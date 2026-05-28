@@ -1,0 +1,101 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 280" width="280" height="280">
+  <defs>
+    <!-- Gradient fond : bleu nuit profond → Azure bleu -->
+    <linearGradient id="bgGrad4" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#001A3A"/>
+      <stop offset="100%" stop-color="#003B6F"/>
+    </linearGradient>
+
+    <!-- Gradient bleu pour les branches hub (spoques) -->
+    <linearGradient id="spokeGrad4" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#0082C9"/>
+      <stop offset="100%" stop-color="#1CAFFF"/>
+    </linearGradient>
+
+    <!-- Masque de découpe = forme du nuage (motif hub à l'intérieur) -->
+    <clipPath id="cloudClip4">
+      <circle cx="107" cy="126" r="28"/>
+      <circle cx="140" cy="102" r="38"/>
+      <circle cx="173" cy="126" r="28"/>
+      <rect x="79" y="126" width="122" height="28"/>
+    </clipPath>
+  </defs>
+
+  <!-- Fond arrondi bleu nuit -->
+  <rect width="280" height="280" fill="url(#bgGrad4)" rx="18"/>
+
+  <g transform="translate(140 140) scale(1.12) translate(-140 -140)">
+
+  <!-- Halo lumineux derrière le nuage -->
+  <ellipse cx="140" cy="112" rx="68" ry="52" fill="rgba(28,175,255,0.12)"/>
+
+  <!-- Nuage blanc (forme Nextcloud-inspirée) -->
+  <g fill="white">
+    <circle cx="107" cy="126" r="28"/>
+    <circle cx="140" cy="102" r="38"/>
+    <circle cx="173" cy="126" r="28"/>
+    <rect x="79" y="126" width="122" height="28"/>
+  </g>
+
+  <!-- Motif HUB CONNECTÉ à l'intérieur du nuage (emblème ruche Cotechnoe) -->
+  <g clip-path="url(#cloudClip4)">
+
+    <!-- 6 branches rayonnantes depuis le centre (140,112) — radius 42 -->
+    <!-- Direction 0°   → (182, 112) -->
+    <!-- Direction 60°  → (161, 75.6) -->
+    <!-- Direction 120° → (119, 75.6) -->
+    <!-- Direction 180° → (98,  112) -->
+    <!-- Direction 240° → (119, 148.4) -->
+    <!-- Direction 300° → (161, 148.4) -->
+    <g stroke="#0082C9" stroke-width="2" opacity="0.75">
+      <line x1="140" y1="112" x2="182" y2="112"/>
+      <line x1="140" y1="112" x2="161" y2="76"/>
+      <line x1="140" y1="112" x2="119" y2="76"/>
+      <line x1="140" y1="112" x2="98"  y2="112"/>
+      <line x1="140" y1="112" x2="119" y2="148"/>
+      <line x1="140" y1="112" x2="161" y2="148"/>
+    </g>
+
+    <!-- Hexagone interne (rayon 15) — structure alvéolaire -->
+    <polygon
+      points="155,112 147.5,99 132.5,99 125,112 132.5,125 147.5,125"
+      fill="none"
+      stroke="#0082C9"
+      stroke-width="1.8"
+      opacity="0.85"/>
+
+    <!-- Noeuds terminaux des 6 branches (data points / abeilles) -->
+    <g fill="#1CAFFF" opacity="0.90">
+      <circle cx="182" cy="112" r="5"/>
+      <circle cx="161" cy="76"  r="5"/>
+      <circle cx="119" cy="76"  r="5"/>
+      <circle cx="98"  cy="112" r="5"/>
+      <circle cx="119" cy="148" r="5"/>
+      <circle cx="161" cy="148" r="5"/>
+    </g>
+
+    <!-- Noeud central — ambré, Cotechnoe -->
+    <circle cx="140" cy="112" r="6" fill="#F5A623"/>
+  </g>
+
+  <!-- Nom "Cotechnoe" — blanc bold -->
+  <text
+    x="140" y="202"
+    text-anchor="middle"
+    font-family="Inter, 'Helvetica Neue', Arial, sans-serif"
+    font-weight="800"
+    font-size="25"
+    fill="white"
+    letter-spacing="0.3">Cotechnoe</text>
+
+  <!-- Sous-titre "CLOUD HUB VM" avec espacement aéré -->
+  <text
+    x="140" y="226"
+    text-anchor="middle"
+    font-family="Inter, 'Helvetica Neue', Arial, sans-serif"
+    font-weight="700"
+    font-size="12.5"
+    fill="rgba(255,255,255,0.88)"
+    letter-spacing="1.2">NEXTCLOUD AZURE</text>
+  </g>
+</svg>
