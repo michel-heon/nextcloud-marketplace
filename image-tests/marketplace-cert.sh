@@ -293,6 +293,19 @@ else
     warn "Microsoft Defender/MDATP détecté: ${DEFENDER} — supprimer ou justifier avant publication"
 fi
 
+# ImageMagick CVE — politique 200.5.8 (USN-7728-1, USN-7756-1, USN-8021-1, USN-8069-1, USN-8263-1)
+# Stratégie de correction : suppression du paquet (patches ESM-only sur Noble 24.04, Ubuntu Pro requis
+# pour les appliquer — suppression préférable pour une image Marketplace sans Ubuntu Pro).
+# PASS si imagemagick est absent ; FAIL si présent (quelle que soit la version).
+IM_PKG=$(ssh_run "dpkg-query -W -f='\${Package}\n' 'imagemagick*' 2>/dev/null \
+    | grep -v '^$' | grep -v -E 'common|doc|dbg|dev|perl|ruby|python' | head -1" || echo "")
+if [[ -z "${IM_PKG}" ]]; then
+    pass "ImageMagick absent — CVE éliminées par suppression du paquet (200.5.8 : USN-7728-1 à USN-8263-1)"
+else
+    IM_VER=$(ssh_run "dpkg-query -W -f='\${Version}\n' '${IM_PKG}' 2>/dev/null" || echo "inconnu")
+    fail "ImageMagick (${IM_PKG}) v${IM_VER} présent — paquet vulnérable doit être supprimé (CVSS 8.5-8.8 : USN-7728-1, USN-7756-1, USN-8021-1, USN-8069-1, USN-8263-1 — correctifs ESM-only sur Noble 24.04) — 200.5.8"
+fi
+
 # ---- 10. Rappel AMAT ----
 echo ""
 echo "--- 10. Azure Marketplace Certification Tool (AMAT) ---"
