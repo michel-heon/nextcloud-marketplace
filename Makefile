@@ -42,7 +42,7 @@ export
 
 PACKER_DIR    := packer/nextcloud
 TERRAFORM_DIR := terraform
-IMAGE_VERSION ?= 0.1.0
+IMAGE_VERSION ?= 0.2.0
 ENVIRONMENT   ?= dev
 
 # VM de test E2E (peut être surchargé : make vm-ensure E2E_RG=autre-rg)

@@ -43,6 +43,13 @@ else
     "php-smbclient" \
     imagemagick
 
+  log_info "Upgrading imagemagick to latest patched version (security — USN-7728-1, USN-7756-1, USN-8021-1, USN-8069-1, USN-8263-1)"
+  apt-get update -qq
+  apt-get install --only-upgrade -y \
+    -o Dpkg::Options::="--force-confdef" \
+    -o Dpkg::Options::="--force-confold" \
+    imagemagick
+
   log_info "Enabling PHP-FPM on boot"
   systemctl enable "php${PHP_VERSION}-fpm"
 
