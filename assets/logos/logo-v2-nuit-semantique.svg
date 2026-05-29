@@ -18,7 +18,7 @@
   <!-- Fond sombre — nuit sémantique -->
   <rect width="280" height="280" fill="#0A1628" rx="18"/>
 
-  <g transform="translate(140 140) scale(1.12) translate(-140 -140)">
+  <g transform="translate(140 140) scale(1.35) translate(-140 -140)">
 
   <!-- Nuage rempli du gradient Nextcloud -->
   <g fill="url(#cloudGrad2)">
@@ -64,9 +64,9 @@
     text-anchor="middle"
     font-family="Inter, 'Helvetica Neue', Arial, sans-serif"
     font-weight="800"
-    font-size="25"
+    font-size="30"
     fill="white"
-    letter-spacing="0.3">NextCloud</text>
+    letter-spacing="0.3">Cloud Hub</text>
 
   </g>
 </svg>
