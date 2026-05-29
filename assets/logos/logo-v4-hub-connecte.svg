@@ -24,7 +24,7 @@
   <!-- Fond arrondi bleu nuit -->
   <rect width="280" height="280" fill="url(#bgGrad4)" rx="18"/>
 
-  <g transform="translate(140 140) scale(1.12) translate(-140 -140)">
+  <g transform="translate(140 140) scale(1.35) translate(-140 -140)">
 
   <!-- Halo lumineux derrière le nuage -->
   <ellipse cx="140" cy="112" rx="68" ry="52" fill="rgba(28,175,255,0.12)"/>
@@ -84,18 +84,9 @@
     text-anchor="middle"
     font-family="Inter, 'Helvetica Neue', Arial, sans-serif"
     font-weight="800"
-    font-size="25"
+    font-size="30"
     fill="white"
-    letter-spacing="0.3">Cotechnoe</text>
+    letter-spacing="0.3">Cloud Hub</text>
 
-  <!-- Sous-titre "CLOUD HUB VM" avec espacement aéré -->
-  <text
-    x="140" y="226"
-    text-anchor="middle"
-    font-family="Inter, 'Helvetica Neue', Arial, sans-serif"
-    font-weight="700"
-    font-size="12.5"
-    fill="rgba(255,255,255,0.88)"
-    letter-spacing="1.2">NEXTCLOUD AZURE</text>
   </g>
 </svg>
